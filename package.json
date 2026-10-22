@@ -1,0 +1,11 @@
+{
+  "name": "surg-ai-backend",
+  "private": true,
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "3.1147.0"
+  }
+}
