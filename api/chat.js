@@ -28,8 +28,36 @@ const CFG = {
 if (!CFG.dailyTokensPerUser) CFG.dailyTokensPerUser = Math.round(CFG.monthlyTokensPerUser / 30);
 
 
-// AI provider: Claude through Amazon Bedrock (set BEDROCK_* keys) or through Anthropic's own API (ANTHROPIC_API_KEY).
-const BEDROCK = !!process.env.BEDROCK_ACCESS_KEY_ID;
+// AI provider. Set AI_PROVIDER to "openrouter", "bedrock" or "anthropic", or leave it empty to use the first one
+// that has keys, in that order: OpenRouter (OPENROUTER_API_KEY), Amazon Bedrock (BEDROCK_*), Anthropic (ANTHROPIC_API_KEY).
+const PROVIDER = env("AI_PROVIDER", process.env.OPENROUTER_API_KEY ? "openrouter" : process.env.BEDROCK_ACCESS_KEY_ID ? "bedrock" : "anthropic");
+const providerReady = () => (PROVIDER === "openrouter" ? !!process.env.OPENROUTER_API_KEY : PROVIDER === "bedrock" ? !!process.env.BEDROCK_ACCESS_KEY_ID && !!process.env.BEDROCK_SECRET_ACCESS_KEY : !!process.env.ANTHROPIC_API_KEY);
+async function askOpenRouter(system, messages, signal) {
+  const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    signal,
+    headers: {
+      Authorization: "Bearer " + process.env.OPENROUTER_API_KEY,
+      "Content-Type": "application/json",
+      "X-Title": env("OPENROUTER_APP_NAME", "Surg AI"),
+      ...(process.env.OPENROUTER_SITE_URL ? { "HTTP-Referer": process.env.OPENROUTER_SITE_URL } : {}),
+    },
+    body: JSON.stringify({
+      model: env("OPENROUTER_MODEL", "anthropic/claude-haiku-5.5"),
+      max_tokens: CFG.maxOutputTokens,
+      messages: [{ role: "system", content: system }, ...messages],
+      reasoning: { effort: CFG.effort, exclude: true },
+    }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.error) { const e = new Error((j.error && j.error.message) || "HTTP " + r.status); e.name = "OpenRouter" + r.status; throw e; }
+  const ch = (j.choices && j.choices[0]) || {}, u = j.usage || {};
+  return {
+    usage: { input_tokens: u.prompt_tokens || 0, output_tokens: u.completion_tokens || 0 },
+    content: [{ type: "text", text: ch.message && typeof ch.message.content === "string" ? ch.message.content : "" }],
+    stop_reason: ch.finish_reason,
+  };
+}
 let brClient;
 function bedrockClient() {
   if (!brClient) {
@@ -92,7 +120,7 @@ function cleanMessages(raw) {
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") return send(res, 405, { error: "POST only." });
-  if ((!process.env.ANTHROPIC_API_KEY && !BEDROCK) || !process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN || !process.env.AUTH_SECRET)
+  if (!providerReady() || !process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN || !process.env.AUTH_SECRET)
     return send(res, 500, { error: "The server isn't configured yet." });
 
   let body = req.body;
@@ -134,7 +162,9 @@ module.exports = async (req, res) => {
   const timer = setTimeout(() => ctl.abort(), 55000);
   let data;
   try {
-    if (BEDROCK) data = await askBedrock(body.task ? SYSTEM_TASK : SYSTEM, messages, ctl.signal);
+    const sys = body.task ? SYSTEM_TASK : SYSTEM;
+    if (PROVIDER === "openrouter") data = await askOpenRouter(sys, messages, ctl.signal);
+    else if (PROVIDER === "bedrock") data = await askBedrock(sys, messages, ctl.signal);
     else {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
