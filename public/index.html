@@ -1741,5 +1741,140 @@ setMode('login');
 if (tok()) boot(); else showAuth('');
 })();
 </script>
+<script id="tour">
+(() => {
+'use strict';
+const LS = (() => { try { return window.localStorage; } catch (e) { return null; } })();
+const mem = {};
+const store = { get: k => { try { return LS ? LS.getItem(k) : mem[k] || null; } catch (e) { return mem[k] || null; } }, set: (k, v) => { try { if (LS) LS.setItem(k, v); else mem[k] = v; } catch (e) { mem[k] = v; } } };
+const key = () => 'surgai.tour.v1.' + (store.get('surgai.user') || 'local');
+const $ = s => document.querySelector(s);
+const wide = () => window.innerWidth > 859;
+
+const STEPS = [
+  { t: 'Welcome to Surg', b: 'A quick tour of where everything is. It takes about 30 seconds, and you can skip it any time.' },
+  { sel: '#mbtn', t: 'Choose a mode', b: 'Tutor teaches you. Viva and OSCE examine you. Case walks through patients. Coach plans your study and Research teaches appraisal. Switch whenever you like.' },
+  { sel: '.pill', t: 'Ask Surg here', b: 'Type a topic or question. Surg explains briefly, then asks you one question to make you think.' },
+  { sel: '#clip', t: 'Attach a file', b: 'Add a PDF, Word or text file to a question and Surg will answer from it.' },
+  { sel: '#bn-study', t: 'Study', b: 'Lock in for focus blocks, then write a recall note after each one. Your notes and reviews live here.' },
+  { sel: '#bn-cards', t: 'Flashcards', b: 'Upload slides or notes and Surg turns them into flashcards, then schedules your reviews.' },
+  { sel: '#libbtn', side: true, t: 'Library', b: 'Add your textbooks and notes. They stay private on this device, and Surg uses the most relevant parts when you ask.' },
+  { sel: '#chbtn', side: true, t: 'Daily challenge', b: 'One small task a day to build your streak, in medicine and in life.' },
+  { sel: '#plbtn', side: true, t: 'Study planner', b: 'Tell Surg your hours and topics and get a plan for your session or day.' },
+  { sel: '#pbtn', side: true, t: 'Your profile', b: 'Add your year, courses and target grade so Surg tailors its answers. It also tracks your weak areas.' },
+  { sel: '#plansbtn', side: true, web: true, t: 'Plans and free trial', b: 'Your free trial lasts 3 days with 45,000 tokens, up to 15,000 a day. Open Plans any time to subscribe. You pay in naira.' },
+  { t: 'You’re ready', b: 'Start by asking Surg about something you’re studying. You can replay this tour from your profile.' }
+].filter(s => !s.web || window.Billing);
+
+let i = 0, on = false, dir = 1, els = null;
+
+const css = document.createElement('style');
+css.textContent = '#tour-block{position:fixed;inset:0;z-index:90;background:transparent}#tour-block.dim{background:rgba(0,0,0,.72)}#tour-hole{position:fixed;z-index:91;border-radius:14px;box-shadow:0 0 0 100vmax rgba(0,0,0,.72);border:2px solid var(--accent);pointer-events:none;display:none;transition:left .18s,top .18s,width .18s,height .18s}#tour-tip{position:fixed;z-index:92;width:min(310px,calc(100vw - 24px));box-sizing:border-box;background:var(--card);color:var(--ink);border:1px solid var(--accent);border-radius:16px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.5);font:14px/1.45 system-ui}#tour-tip h3{margin:0 0 4px;font:700 16px system-ui}#tour-tip p{margin:0 0 12px;color:var(--ink)}#tour-tip .tn{display:flex;align-items:center;gap:8px}#tour-tip .tc{color:var(--mute);font-size:12px;flex:1}#tour-tip button{border-radius:10px;padding:8px 14px;font:600 14px system-ui;cursor:pointer;border:1px solid var(--line);background:none;color:var(--ink)}#tour-tip button.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}#tour-tip button.skip{border:0;color:var(--mute);padding:8px 6px}#tour-tip .ar{position:absolute;width:14px;height:14px;background:var(--card);border:1px solid var(--accent);transform:rotate(45deg)}#tour-tip .ar.up{top:-8px;border-right:0;border-bottom:0}#tour-tip .ar.dn{bottom:-8px;border-left:0;border-top:0}@media (prefers-reduced-motion:reduce){#tour-hole{transition:none}}';
+document.head.append(css);
+
+function visible(el) { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; }
+function openSide(open) {
+  const side = $('#side'), scrim = $('#scrim'); if (!side || wide()) return;
+  side.classList.toggle('open', open); if (scrim) scrim.classList.toggle('show', open);
+}
+function toChat() { const b = $('#bn-chat'); if (b && b.getAttribute('aria-current') !== 'page' && !b.classList.contains('st-lock')) b.click(); }
+
+function build() {
+  const block = document.createElement('div'); block.id = 'tour-block';
+  const hole = document.createElement('div'); hole.id = 'tour-hole';
+  const tip = document.createElement('div'); tip.id = 'tour-tip'; tip.setAttribute('role', 'dialog'); tip.setAttribute('aria-live', 'polite'); tip.setAttribute('aria-label', 'App tour');
+  document.body.append(block, hole, tip); els = { block, hole, tip };
+}
+
+function place() {
+  if (!on || !els) return;
+  const st = STEPS[i], el = st.sel ? $(st.sel) : null, { block, hole, tip } = els;
+  tip.innerHTML = '';
+  const h = document.createElement('h3'); h.textContent = st.t;
+  const p = document.createElement('p'); p.textContent = st.b;
+  const nav = document.createElement('div'); nav.className = 'tn';
+  const skip = document.createElement('button'); skip.className = 'skip'; skip.type = 'button'; skip.textContent = i === STEPS.length - 1 ? '' : 'Skip'; skip.onclick = () => end();
+  const cnt = document.createElement('span'); cnt.className = 'tc'; cnt.textContent = (i + 1) + ' of ' + STEPS.length;
+  const back = document.createElement('button'); back.type = 'button'; back.textContent = 'Back'; back.onclick = () => go(-1); back.hidden = i === 0;
+  const next = document.createElement('button'); next.type = 'button'; next.className = 'pri'; next.textContent = i === STEPS.length - 1 ? 'Done' : i === 0 ? 'Start' : 'Next'; next.onclick = () => go(1);
+  if (skip.textContent) nav.append(skip); nav.append(cnt, back, next);
+  const arrow = document.createElement('span'); arrow.className = 'ar'; arrow.hidden = !el;
+  tip.append(arrow, h, p, nav);
+  const tw = tip.offsetWidth, th = tip.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+  if (!el) {
+    hole.style.display = 'none'; block.className = 'dim';
+    tip.style.left = Math.max(12, (vw - tw) / 2) + 'px'; tip.style.top = Math.max(12, (vh - th) / 2) + 'px';
+  } else {
+    block.className = '';
+    const r = el.getBoundingClientRect(), pad = 6;
+    hole.style.display = 'block'; hole.style.left = (r.left - pad) + 'px'; hole.style.top = (r.top - pad) + 'px'; hole.style.width = (r.width + pad * 2) + 'px'; hole.style.height = (r.height + pad * 2) + 'px';
+    const below = vh - (r.bottom + pad), above = r.top - pad, putBelow = below >= th + 20 || below >= above;
+    let top = putBelow ? r.bottom + pad + 12 : r.top - pad - 12 - th; top = Math.min(Math.max(8, top), vh - th - 8);
+    let left = r.left + r.width / 2 - tw / 2; left = Math.min(Math.max(12, left), vw - tw - 12);
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+    arrow.className = 'ar ' + (putBelow ? 'up' : 'dn'); arrow.style.left = Math.min(Math.max(14, r.left + r.width / 2 - left - 7), tw - 28) + 'px';
+  }
+  next.focus({ preventScroll: true });
+}
+
+function show() {
+  const st = STEPS[i];
+  if (st.sel) {
+    if (st.side) openSide(true); else { openSide(false); toChat(); }
+    const el = $(st.sel);
+    setTimeout(() => {
+      if (!on) return;
+      const e2 = $(st.sel);
+      if (!visible(e2)) { go(dir); return; } // that control isn't on this screen or plan: skip it
+      try { e2.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) {}
+      place();
+    }, st.side && !wide() ? 260 : 60);
+  } else { openSide(false); if (i === 0) toChat(); place(); }
+}
+function go(d) {
+  dir = d || 1; let n = i + dir;
+  if (n >= STEPS.length) { end(true); return; }
+  if (n < 0) n = 0;
+  i = n; show();
+}
+function end() {
+  if (!on) return; on = false; store.set(key(), '1');
+  openSide(false); if (els) { els.block.remove(); els.hole.remove(); els.tip.remove(); els = null; }
+  window.removeEventListener('resize', place); window.removeEventListener('keydown', onKey, true);
+}
+function onKey(e) {
+  if (!on) return;
+  if (e.key === 'Escape') { e.preventDefault(); end(); }
+  else if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); go(1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+}
+function start() {
+  if (on) return; on = true; i = 0; dir = 1; build();
+  window.addEventListener('resize', place); window.addEventListener('keydown', onKey, true);
+  show();
+}
+window.SurgTour = { start, end };
+
+// Replay button inside the profile panel
+const row = $('#panel .row');
+if (row) {
+  const h = document.createElement('h2'); h.style.marginTop = '16px'; h.textContent = 'Help';
+  const b = document.createElement('button'); b.className = 'ghost'; b.type = 'button'; b.id = 'tourbtn'; b.textContent = 'Take the app tour';
+  b.onclick = () => { $('#panel').classList.remove('show'); setTimeout(start, 150); };
+  row.before(h, b);
+}
+
+// First visit: start once the student is signed in and nothing else is on screen
+const poll = setInterval(() => {
+  if (store.get(key()) === '1') { clearInterval(poll); return; }
+  const auth = document.getElementById('auth'), plans = document.getElementById('plans'), panel = document.getElementById('panel');
+  let busy = false;
+  try { const s = JSON.parse(store.get('surgai.study.v1') || 'null'); busy = !!(s && s.sess); } catch (e) {}
+  if ((auth && !auth.hidden) || (plans && !plans.hidden) || (panel && panel.classList.contains('show')) || busy || document.fullscreenElement || on) return;
+  if (!$('#app') || !visible($('#mbtn'))) return;
+  clearInterval(poll); setTimeout(start, 600);
+}, 1000);
+})();
+</script>
 </body>
 </html>
