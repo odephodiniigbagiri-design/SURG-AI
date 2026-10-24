@@ -30,7 +30,9 @@ if (!CFG.dailyTokensPerUser) CFG.dailyTokensPerUser = Math.round(CFG.monthlyToke
 
 // AI provider: Claude through Amazon Bedrock (set BEDROCK_* keys) or through Anthropic's own API (ANTHROPIC_API_KEY).
 // Provider order: OpenRouter (OPENROUTER_API_KEY), else Bedrock, else Anthropic directly.
-const OR_KEY = process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || "";
+// The key is read from API_PROVIDER (the name used on Vercel); OPENROUTER_API_KEY / OPENROUTER_KEY also work.
+const apiProv = String(process.env.API_PROVIDER || "").trim();
+const OR_KEY = String(process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || (/^sk-/.test(apiProv) ? apiProv : "")).trim();
 const OR_MODEL = env("OPENROUTER_MODEL", /\//.test(env("MODEL", "")) ? env("MODEL", "") : ""); // OpenRouter ids look like provider/model-name
 const OPENROUTER = !!OR_KEY;
 const BEDROCK = !OPENROUTER && !!process.env.BEDROCK_ACCESS_KEY_ID;
