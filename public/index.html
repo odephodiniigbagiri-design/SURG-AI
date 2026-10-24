@@ -1531,7 +1531,7 @@ window.startListen = function () { if (PLAN.voice) return _sl(); };
 
 /* Plans page */
 const P = [
-  { id: 'trial', name: 'Free trial', sub: 'Try Surg Pro before you pay', price: '$0', per: 'for 5 days', cta: 'Starts when you sign up', f: ['Everything in Surg Pro for 5 days', 'No card needed', 'Starts when you create your account'] },
+  { id: 'trial', name: 'Free trial', sub: 'A small taste of Surg before you pay', price: '$0', per: 'for 3 days', cta: 'Starts when you sign up', head: 'What the free trial includes:', f: ['45,000 tokens in total (roughly 7 to 10 chat messages), with a daily limit of 15,000', 'Text chat with Surg in all 7 AI modes', 'Flashcards, daily challenge and study planner (they use the same tokens)', 'Study Mode and revision notes (these use no tokens)', 'A private library of about 1 textbook', 'No voice conversation', 'No card needed. It ends after 3 days or when the tokens run out, whichever comes first', 'Surg Pro gives you 900,000 tokens every month'] },
   { id: 'pro', name: 'Surg Pro', sub: 'Your daily study partner', price: '$1.10', per: 'USD / month', cta: 'Choose Pro', head: 'Everything you need to study with Surg:', f: [
     '900,000 tokens every month (roughly 140 to 200 chat messages, or about 150 flashcard sets of 20 cards; our estimate)',
     'Text chat with Surg (no voice)',
@@ -1552,7 +1552,7 @@ css.textContent = '#plans{position:fixed;inset:0;z-index:70;background:var(--bg)
   + '.fbrow{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}.fbb{background:none;border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:4px 9px;display:inline-flex;align-items:center}.fbb.down svg{transform:rotate(180deg)}.fbb.on{color:var(--accent-ink);background:var(--accent);border-color:var(--accent)}.fbt{font-size:12px;color:var(--mute)}.fbc{background:none;border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:3px 10px;font-size:12px}';
 document.head.append(css);
 const ov = document.createElement('div'); ov.id = 'plans'; ov.hidden = true; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Plans');
-ov.innerHTML = '<button id="pl-x" aria-label="Close">✕</button><h1>Plans that grow with you</h1><p class="psub" id="pl-sub"></p><div id="pl-grid"></div><div id="pl-msg" hidden></div><p class="pl-fn">Prices in USD, billed monthly. Token counts are per month and message estimates are approximate. Prices and plans may change.</p>';
+ov.innerHTML = '<button id="pl-x" aria-label="Close">✕</button><h1>Plans that grow with you</h1><p class="psub" id="pl-sub"></p><div id="pl-grid"></div><div id="pl-msg" hidden></div><p class="pl-fn">Prices are shown in USD. At checkout you pay the naira equivalent through Paystack, and each payment gives you 30 days. Token counts are per month and message estimates are approximate. Prices and plans may change.</p>';
 document.body.append(ov);
 const daysLeft = ms => Math.max(0, Math.ceil((ms - Date.now()) / 864e5)) + ' days left';
 function render(focus) {
@@ -1582,8 +1582,8 @@ async function choose(id) {
 }
 window.Plans = {
   open(focus) {
-    const f = focus === 'voice' ? 'ultra' : focus;
-    $('pl-sub').textContent = focus === 'voice' ? 'Voice conversation is part of Surg Ultra.' : focus === 'expired' ? 'Your free trial has ended. Choose a plan to keep using Surg.' : !window.Billing ? 'Preview. Plans take effect on the hosted web app.' : '';
+    const f = focus === 'voice' ? 'ultra' : (focus === 'trial_day' || focus === 'trial_total' || focus === 'expired') ? 'pro' : focus;
+    $('pl-sub').textContent = focus === 'voice' ? 'Voice conversation is part of Surg Ultra.' : focus === 'expired' ? 'Your free trial has ended. Choose a plan to keep using Surg.' : focus === 'trial_day' ? 'You have reached today\u2019s free-trial limit. Choose a plan to keep studying with Surg now, or come back tomorrow for the rest of your trial.' : focus === 'trial_total' ? 'You have used all your free-trial tokens. Choose a plan to keep using Surg.' : !window.Billing ? 'Preview. Plans take effect on the hosted web app.' : '';
     $('pl-msg').hidden = true; render(f); ov.hidden = false; ov.scrollTop = 0;
   },
   close() { ov.hidden = true; },
@@ -1650,8 +1650,8 @@ au.innerHTML = '<div class="bx" role="dialog" aria-labelledby="au-h"><div class=
 document.body.append(au);
 function setMode(m) {
   mode = m; const s = m === 'signup';
-  $('au-c').hidden = !s; $('au-go').textContent = s ? 'Create account' : 'Log in'; $('au-sw').textContent = s ? 'I already have an account' : 'New here? Create an account';
-  $('au-s').textContent = s ? 'Use the invite code you were given.' : 'Log in to keep your flashcards, notes and progress.';
+  $('au-c').hidden = true; $('au-go').textContent = s ? 'Create account' : 'Log in'; $('au-sw').textContent = s ? 'I already have an account' : 'New here? Create an account';
+  $('au-s').textContent = s ? 'Create an account to start your free 3-day trial. No card needed.' : 'Log in to keep your flashcards, notes and progress.';
   $('au-p').autocomplete = s ? 'new-password' : 'current-password'; $('au-e').textContent = '';
 }
 function showAuth(msg) { clearInterval(timer); setMode('login'); $('au-e').textContent = msg || ''; au.hidden = false; }
@@ -1713,7 +1713,7 @@ function chip() {
   let el = $('au-chip');
   if (!el) { el = document.createElement('div'); el.id = 'au-chip'; el.style.cssText = 'font-size:13px;color:var(--mute);margin:0 0 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap'; const h = document.querySelector('#panel .sheet h2'); if (h) h.after(el); }
   const t = document.createElement('span'), p = document.createElement('button'), b = document.createElement('button');
-  t.textContent = 'Signed in as ' + (LS.getItem(UN) || '') + (planLabel() ? ' · ' + planLabel() : '') + (PLAN.left != null ? ' · ' + Math.round(PLAN.left / 1000) + 'k tokens left this month' : '');
+  t.textContent = 'Signed in as ' + (LS.getItem(UN) || '') + (planLabel() ? ' · ' + planLabel() : '') + (PLAN.left != null ? ' · ' + (PLAN.left < 1000 ? PLAN.left : (Math.round(PLAN.left / 100) / 10) + 'k') + (PLAN.plan === 'trial' ? ' tokens left in your free trial' : ' tokens left this month') : '');
   p.className = 'ghost'; p.textContent = 'Plans'; p.onclick = () => Plans.open();
   b.className = 'ghost'; b.textContent = 'Log out';
   b.onclick = async () => { if ((await push()) || confirm('Your latest changes could not be saved. Log out anyway?')) { clearInterval(timer); wipe(); [TK, UN, OWN].forEach(k => LS.removeItem(k)); location.reload(); } };
@@ -1728,7 +1728,7 @@ async function webSample(input, o = {}) {
   const task = !Array.isArray(input);
   const messages = (task ? [{ role: 'user', content: String(input) }] : input).map(m => ({ role: m.role, content: String(m.content).replace(/<instructions>[\s\S]*?<\/instructions>\s*/, '') }));
   const r = await api('/api/chat', { method: 'POST', body: JSON.stringify({ messages, task }) });
-  if (r.status === 402) Plans.open('expired');
+  if (r.status === 402) Plans.open(r.j.reason || 'expired');
   if (!r.ok) { const e = new Error(r.j.error || 'Surg could not answer. Try again.'); e.code = 'server'; throw e; }
   if (r.j.left) { PLAN.left = r.j.left.month; chip(); }
   if (o.onText) o.onText({ text: r.j.text });
