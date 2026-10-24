@@ -231,6 +231,10 @@ body.on-study.focusing header{display:none}
 .fc-card small{color:var(--mute);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
 .fc-card.back{border-color:var(--accent)}.fc-card.back small{color:var(--accent)}
 .fc-row2{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+#fc-gray .fc-card{min-height:260px}
+#ga-img{max-width:100%;max-height:62vh;height:auto;margin:0 auto;border-radius:10px;background:#fff}
+#ga-front{font-size:42px;font-weight:700}
+
 
 #study .st-cta{width:100%;display:grid;gap:2px;justify-items:center;border:0;border-radius:18px;padding:18px 20px;background:linear-gradient(135deg,#e0a53a,#f6cf72);color:#1a1405;font:800 22px system-ui;cursor:pointer;animation:st-pulse 2.4s infinite}
 #study .st-cta-t{display:flex;align-items:center;gap:8px}
@@ -352,6 +356,7 @@ body.on-study.focusing header{display:none}
       <div class="fc-rail" role="tablist" aria-orientation="horizontal">
         <button id="fc-t-up" role="tab" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg> Upload</button>
         <button id="fc-t-my" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="14" height="12" rx="2"/><path d="M7 7V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2"/></svg> My flashcards</button>
+        <button id="fc-t-gray" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/></svg> Gray anatomy</button>
       </div>
       <div class="fc-main">
         <section id="fc-up">
@@ -375,6 +380,13 @@ body.on-study.focusing header{display:none}
             <button id="fc-more" class="fc-primary" style="margin-top:12px">Add more cards</button>
             <div class="fc-row2"><button id="fc-shuf" class="fc-ghost">Shuffle</button><button id="fc-del" class="fc-ghost">Delete deck</button></div>
           </div>
+        </section>
+        <section id="fc-gray" hidden>
+          <div class="fc-bar"><b>Gray anatomy</b><span id="ga-cnt"></span></div>
+          <button id="ga-card" class="fc-card" type="button" aria-live="polite"><small id="ga-side">Front</small><span id="ga-front"></span><img id="ga-img" alt="" hidden><span id="ga-miss" class="fc-muted" hidden></span></button>
+          <p class="fc-muted" style="text-align:center">Tap the card to flip it.</p>
+          <div class="fc-row2"><button id="ga-prev" class="fc-ghost">‹ Prev</button><button id="ga-flip" class="fc-ghost">Flip</button><button id="ga-next" class="fc-ghost">Next ›</button></div>
+          <div class="fc-row2"><input id="ga-go" type="number" min="1" inputmode="numeric" placeholder="Card #" style="width:110px"><button id="ga-gob" class="fc-ghost">Go</button><button id="ga-shuf" class="fc-ghost">Shuffle</button><button id="ga-ord" class="fc-ghost">In order</button></div>
         </section>
       </div>
     </div>
@@ -1400,11 +1412,11 @@ const say = m => { $('fc-st').textContent = m; };
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch { say('Your device is out of storage, so these cards may not be saved.'); } };
 let file = null, n = 10, busy = false, open = null, idx = 0, flipped = false, delT = 0, kept = {}, rev = null;
 function tab(t) {
-  $('fc-up').hidden = t !== 'up'; $('fc-my').hidden = t !== 'my';
-  $('fc-t-up').setAttribute('aria-selected', t === 'up'); $('fc-t-my').setAttribute('aria-selected', t === 'my');
+  $('fc-up').hidden = t !== 'up'; $('fc-my').hidden = t !== 'my'; $('fc-gray').hidden = t !== 'gray';
+  $('fc-t-up').setAttribute('aria-selected', t === 'up'); $('fc-t-my').setAttribute('aria-selected', t === 'my'); $('fc-t-gray').setAttribute('aria-selected', t === 'gray');
   if (t === 'my') renderMy();
 }
-$('fc-t-up').onclick = () => tab('up'); $('fc-t-my').onclick = () => { open = null; rev = null; tab('my'); };
+$('fc-t-gray').onclick = () => tab('gray'); $('fc-t-up').onclick = () => tab('up'); $('fc-t-my').onclick = () => { open = null; rev = null; tab('my'); };
 const est = () => Math.round(Math.min(file.text.length, MAXCH) / 4 + 450 + n * 60);
 function refresh() {
   $('fc-file').textContent = file ? file.name + ' · ' + Math.round(file.text.length / 1000) + 'k characters read' : 'Tap to choose a file';
@@ -1517,6 +1529,47 @@ $('fc-more').onclick = () => {
   say('Adding to "' + d.topic + '". ' + (file ? 'Choose how many, then make more cards.' : 'Upload your file again, then make more cards.')); refresh();
 };
 refresh();
+})();
+</script>
+<script id="gray-anatomy">
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+/* Folder holding the Anki media files (named 0, 2, 4 ...), next to this html file */
+const MEDIA = 'media/', KEY = 'surgai.grayanatomy.v1';
+/* [front label, media file name] */
+const CARDS = [["1","0"],["2","2"],["3","4"],["4","6"],["5","8"],["6","10"],["7","12"],["8","14"],["10","16"],["11","18"],["12","20"],["13","22"],["14","24"],["15","26"],["16","28"],["17","30"],["18","32"],["19","34"],["20","36"],["21","38"],["22","40"],["23","42"],["24","44"],["25","46"],["26","48"],["27","50"],["28","52"],["29","54"],["30","56"],["31","58"],["32","60"],["33","62"],["34","64"],["35","66"],["37","68"],["38","70"],["39","72"],["40","74"],["41","76"],["42","78"],["43","80"],["44","82"],["45","84"],["46","86"],["47","88"],["48","90"],["49","92"],["50","94"],["51","96"],["52","98"],["53","100"],["54","102"],["55","104"],["56","106"],["57","108"],["58","110"],["59","112"],["60","114"],["61","116"],["62","118"],["63","120"],["64","122"],["65","124"],["66","126"],["67","128"],["68","130"],["69","132"],["70","134"],["71","136"],["72","138"],["73","140"],["74","142"],["75","144"],["76","146"],["78","148"],["79","150"],["80","152"],["81","154"],["82","156"],["83","158"],["84","160"],["85","162"],["86","164"],["87","166"],["88","168"],["89","170"],["90","172"],["91","174"],["92","176"],["93","178"],["94","180"],["95","182"],["96","184"],["97","186"],["98","188"],["99","190"],["100","192"],["101","194"],["102","196"],["103","198"],["104","200"],["105","202"],["106","204"],["107","206"],["108","208"],["109","210"],["110","212"],["111","214"],["112","216"],["113","218"],["114","220"],["115","222"],["116","224"],["118","226"],["119","228"],["120","230"],["121","232"],["122","234"],["123","236"],["124","238"],["125","240"],["126","242"],["127","244"],["128","246"],["129","248"],["130","250"],["131","252"],["132","254"],["133","256"],["134","258"],["135","260"],["136","262"],["137","264"],["139","266"],["140","268"],["141","270"],["142","272"],["143","274"],["144","276"],["145","278"],["146","280"],["147","282"],["148","284"],["149","286"],["150","288"],["151","290"],["152","292"],["153","294"],["154","296"],["155","298"],["156","300"],["157","302"],["158","304"],["159","306"],["160","308"],["161","310"],["162","312"],["163","314"],["164","316"],["165","318"],["166","320"],["167","322"],["168","324"],["169","326"],["170","328"],["171","330"],["172","332"],["173","334"],["174","336"],["175","338"],["176","340"],["177","342"],["178","344"],["179","346"],["180","348"],["181","350"],["182","352"],["183","354"],["184","356"],["185","358"],["186","360"],["187","362"],["188","364"],["189","366"],["190","368"],["191","370"],["192","372"],["193","374"],["194","376"],["195","378"],["196","380"],["198","382"],["199","384"],["200","386"],["201","388"],["202","390"],["203","392"],["204","394"],["205","396"],["206","398"],["207","400"],["208","402"],["209","404"],["210","406"],["211","408"],["212","410"],["213","412"],["214","414"],["215","416"],["216","418"],["217","420"],["218","422"],["219","424"],["220","426"],["221","428"],["222","430"],["223","432"],["224","434"],["225","436"],["226","438"],["227","440"],["228","442"],["229","444"],["230","446"],["231","448"],["232","450"],["233","452"],["234","454"],["235","456"],["236","458"],["237","460"],["238","462"],["239","464"],["240","466"],["241","468"],["242","470"],["243","472"],["244","474"],["245","476"],["246","478"],["247","480"],["248","482"],["249","484"],["250","486"],["251","488"],["252","490"],["253","492"],["254","494"],["255","496"],["256","498"],["257","500"],["258","502"],["259","504"],["260","506"],["261","508"],["262","510"],["263","512"],["264","514"],["267","516"],["268","518"],["269","520"],["270","522"],["271","524"],["272","526"],["273","528"],["274","530"],["275","532"],["276","534"],["277","536"],["278","538"],["279","540"],["280","542"],["281","544"],["282","546"],["283","548"],["284","550"],["285","552"],["286","554"],["287","556"],["288","558"],["289","560"],["290","562"],["291","564"],["292","566"],["293","568"],["294","570"],["295","572"],["296","574"],["297","576"],["298","578"],["299","580"],["300","582"],["301","584"],["302","586"],["303","588"],["304","590"],["305","592"],["306","594"],["307","596"],["308","598"],["309","600"],["310","602"],["311","604"],["312","606"],["313","608"],["314","610"],["315","612"],["316","614"],["317","616"],["318","618"],["319","620"],["320","622"],["321","624"],["322","626"],["323","628"],["324","630"],["325","632"],["326","634"],["327","636"],["328","638"],["329","640"],["330","642"],["331","644"],["332","646"],["333","648"],["334","650"],["335","652"],["336","654"],["337","656"],["338","658"],["339","660"],["340","662"],["341","664"],["342","666"],["343","668"],["344","670"],["345","672"],["346","674"],["347","676"],["348","678"],["349","680"],["350","682"],["351","684"],["352","686"],["353","688"],["354","690"],["355","692"],["356","694"],["357","696"],["359","698"],["360","700"],["361","702"],["362","704"],["363","706"],["364","708"],["365","710"],["366","712"],["367","714"],["368","716"],["369","718"],["370","720"],["371","722"],["372","724"],["373","726"],["374","728"],["375","730"],["376","732"],["377","734"],["378","736"],["380","738"],["381","740"],["382","742"],["383","744"],["384","746"],["385","748"],["386","750"],["387","752"],["389","754"],["390","756"],["391","758"],["392","760"],["393","762"],["394","764"],["395","766"],["396","768"],["397","770"],["398","772"],["399","774"],["400","776"],["401","778"],["402","780"]];
+let order = CARDS.map((_, i) => i), pos = 0, flipped = false;
+try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.pos >= 0 && s.pos < CARDS.length) pos = s.pos; } catch {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ pos: order[pos] })); } catch {} };
+function render() {
+  const c = CARDS[order[pos]], img = $('ga-img'), miss = $('ga-miss');
+  $('ga-cnt').textContent = (pos + 1) + ' / ' + CARDS.length;
+  $('ga-side').textContent = flipped ? 'Back' : 'Front';
+  $('ga-card').classList.toggle('back', flipped);
+  $('ga-front').hidden = flipped; img.hidden = true; miss.hidden = true;
+  $('ga-front').textContent = c[0];
+  if (!flipped) return;
+  if (!c[1]) { miss.textContent = 'No image on this card.'; miss.hidden = false; return; }
+  img.onload = () => { img.hidden = false; miss.hidden = true; };
+  img.onerror = () => { img.hidden = true; miss.textContent = 'Image not found: ' + MEDIA + c[1]; miss.hidden = false; };
+  img.src = MEDIA + c[1];
+}
+const go = k => { pos = (pos + k + CARDS.length) % CARDS.length; flipped = false; save(); render(); };
+$('ga-card').onclick = $('ga-flip').onclick = () => { flipped = !flipped; render(); };
+$('ga-prev').onclick = () => go(-1); $('ga-next').onclick = () => go(1);
+$('ga-gob').onclick = () => {
+  const n = String($('ga-go').value).trim(); if (!n) return;
+  const i = order.findIndex(x => CARDS[x][0] === n); if (i < 0) { $('ga-go').value = ''; return; }
+  pos = i; flipped = false; save(); render();
+};
+$('ga-go').addEventListener('keydown', e => { if (e.key === 'Enter') $('ga-gob').click(); });
+$('ga-shuf').onclick = () => {
+  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  pos = 0; flipped = false; render();
+};
+$('ga-ord').onclick = () => { order = CARDS.map((_, i) => i); pos = 0; flipped = false; save(); render(); };
+render();
 })();
 </script>
 <script id="extras">
