@@ -29,7 +29,11 @@ if (!CFG.dailyTokensPerUser) CFG.dailyTokensPerUser = Math.round(CFG.monthlyToke
 
 
 // AI provider: Claude through Amazon Bedrock (set BEDROCK_* keys) or through Anthropic's own API (ANTHROPIC_API_KEY).
-const BEDROCK = !!process.env.BEDROCK_ACCESS_KEY_ID;
+// Provider order: OpenRouter (OPENROUTER_API_KEY), else Bedrock, else Anthropic directly.
+const OR_KEY = process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || "";
+const OR_MODEL = env("OPENROUTER_MODEL", /\//.test(env("MODEL", "")) ? env("MODEL", "") : ""); // OpenRouter ids look like provider/model-name
+const OPENROUTER = !!OR_KEY;
+const BEDROCK = !OPENROUTER && !!process.env.BEDROCK_ACCESS_KEY_ID;
 let brClient;
 function bedrockClient() {
   if (!brClient) {
@@ -55,6 +59,36 @@ async function askBedrock(system, messages, signal) {
     usage: { input_tokens: (u.inputTokens || 0) + (u.cacheReadInputTokens || 0) + (u.cacheWriteInputTokens || 0), output_tokens: u.outputTokens || 0 },
     content: blocks.filter((b) => typeof b.text === "string").map((b) => ({ type: "text", text: b.text })),
     stop_reason: out.stopReason,
+  };
+}
+
+async function askOpenRouter(system, messages, signal) {
+  if (!OR_MODEL) { const e = new Error("OPENROUTER_MODEL is not set"); e.config = true; throw e; }
+  const body = {
+    model: OR_MODEL,
+    max_tokens: CFG.maxOutputTokens,
+    messages: [{ role: "system", content: system }, ...messages],
+    usage: { include: true }, // makes OpenRouter report the real cost of each call
+  };
+  if (process.env.OPENROUTER_REASONING_EFFORT) body.reasoning = { effort: process.env.OPENROUTER_REASONING_EFFORT };
+  const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    signal,
+    headers: { Authorization: "Bearer " + OR_KEY, "Content-Type": "application/json", "X-Title": "SURG AI", ...(process.env.SITE_URL ? { "HTTP-Referer": process.env.SITE_URL } : {}) },
+    body: JSON.stringify(body),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.error) {
+    const e = new Error("openrouter " + r.status + " " + JSON.stringify(j.error || j).slice(0, 300));
+    e.status = r.status; throw e;
+  }
+  const ch = (j.choices && j.choices[0]) || {}, u = j.usage || {};
+  const text = typeof (ch.message && ch.message.content) === "string" ? ch.message.content : "";
+  return {
+    usage: { input_tokens: u.prompt_tokens || 0, output_tokens: u.completion_tokens || 0 },
+    cost: typeof u.cost === "number" ? u.cost : null,
+    content: text ? [{ type: "text", text }] : [],
+    stop_reason: ch.finish_reason,
   };
 }
 
@@ -92,7 +126,7 @@ function cleanMessages(raw) {
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") return send(res, 405, { error: "POST only." });
-  if ((!process.env.ANTHROPIC_API_KEY && !BEDROCK) || !process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN || !process.env.AUTH_SECRET)
+  if ((!process.env.ANTHROPIC_API_KEY && !BEDROCK && !OPENROUTER) || !process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN || !process.env.AUTH_SECRET)
     return send(res, 500, { error: "The server isn't configured yet." });
 
   let body = req.body;
@@ -138,7 +172,8 @@ module.exports = async (req, res) => {
   const timer = setTimeout(() => ctl.abort(), 55000);
   let data;
   try {
-    if (BEDROCK) data = await askBedrock(body.task ? SYSTEM_TASK : SYSTEM, messages, ctl.signal);
+    if (OPENROUTER) data = await askOpenRouter(body.task ? SYSTEM_TASK : SYSTEM, messages, ctl.signal);
+    else if (BEDROCK) data = await askBedrock(body.task ? SYSTEM_TASK : SYSTEM, messages, ctl.signal);
     else {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -162,13 +197,15 @@ module.exports = async (req, res) => {
   } catch (e) {
     console.error("ai call failed", e.name, e.message);
     await undo();
+    if (e.config) return send(res, 500, { error: "The server isn't configured yet." });
+    if (e.status === 402) return send(res, 503, { error: "Surg is temporarily unavailable. Try again shortly." }); // OpenRouter credit is empty: top it up
     return send(res, 502, { error: "Surg couldn't answer just now. Try again." });
   } finally { clearTimeout(timer); }
 
   const u = data.usage || {};
   const inTok = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0);
   const outTok = u.output_tokens || 0;
-  const micro = Math.ceil(inTok * CFG.priceIn + outTok * CFG.priceOut); // $/Mtok x tokens = micro-dollars
+  const micro = typeof data.cost === "number" ? Math.ceil(data.cost * 1e6) : Math.ceil(inTok * CFG.priceIn + outTok * CFG.priceOut); // OpenRouter reports real cost; otherwise $/Mtok x tokens = micro-dollars
   try {
     await redis([["INCRBY", kDay, micro], ["EXPIRE", kDay, 259200], ["INCRBY", kMonth, micro], ["EXPIRE", kMonth, 3456000],
       ["INCRBY", tDay, inTok + outTok], ["EXPIRE", tDay, 259200], ["INCRBY", tMonth, inTok + outTok], ["EXPIRE", tMonth, 3456000],
