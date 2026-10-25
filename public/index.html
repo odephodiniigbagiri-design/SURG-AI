@@ -281,7 +281,12 @@ body.on-study #review{display:flex}
 .dk-i .chev{margin-left:auto;width:14px;height:14px;transition:transform .15s}
 .dk-i[aria-expanded=true] .chev{transform:rotate(180deg)}
 .dk-sub{padding-left:14px}
-.dk-ans{border-top:1px dashed var(--line);padding-top:10px;color:var(--ink)}
+.dk-flip{width:100%;min-height:240px;perspective:1000px;background:none;border:0;padding:0;color:var(--ink);cursor:pointer}
+.dk-in{position:relative;width:100%;min-height:240px;transition:transform .55s;transform-style:preserve-3d}
+.dk-flip.on .dk-in{transform:rotateY(180deg)}
+.dk-f,.dk-b{position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden;display:grid;place-content:center;text-align:center;padding:22px;background:var(--card);border:1px solid var(--line);border-radius:20px;font:500 22px/1.4 system-ui;overflow:auto;overflow-wrap:anywhere}
+.dk-b{transform:rotateY(180deg)}
+@media (prefers-reduced-motion:reduce){.dk-in{transition:none}}
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
@@ -1917,7 +1922,7 @@ window.Review = { add, refresh, open };
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
-const KEY = 'surgai.deck.v1', INT = [1, 3, 7, 14, 30, 60], NEWMAX = 20; // days to the next review at each level; new cards per session
+const KEY = 'surgai.deck.v1', INT = [1, 3, 7, 14, 30, 60], NEWMAX = Infinity; // days to the next review at each level; new cards per session (no cap: the whole deck is offered)
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const ld = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const addD = (ds, n) => { const d = new Date(ds + 'T12:00:00'); d.setDate(d.getDate() + n); return ld(d); };
@@ -2000,18 +2005,25 @@ function draw() {
     if (st.nw) { const more = el('button', 'fc-primary', 'Study ' + Math.min(st.nw, NEWMAX) + ' more new cards'); more.type = 'button'; more.onclick = () => start(ses.key, ses.name, ses.cards); sh.append(more); }
     return;
   }
-  const c = ses.q[0], card = el('button', 'fc-card'); card.type = 'button'; card.setAttribute('aria-live', 'polite');
-  card.append(el('div', '', c[1]));
-  if (ses.show) card.append(el('div', 'dk-ans', c[2]));
-  card.onclick = () => { if (!ses.show) { ses.show = true; draw(); } };
-  sh.append(card);
-  if (!ses.show) {
-    sh.append(el('p', 'fc-muted', 'Recall the answer first, out loud or in your head, then show it.'));
-    const sa = el('button', 'fc-primary', 'Show answer'); sa.type = 'button'; sa.onclick = card.onclick; sh.append(sa); return;
-  }
-  const row = el('div', 'fc-row2');
-  [['again', 'Again'], ['hard', 'Hard'], ['good', 'Good'], ['easy', 'Easy']].forEach(([g, l]) => { const r = el('button', 'fc-ghost', l); r.type = 'button'; r.onclick = () => rate(g); row.append(r); });
-  sh.append(row);
+  const c = ses.q[0], card = el('button', 'dk-flip'); card.type = 'button'; card.setAttribute('aria-label', 'Flashcard. Tap to flip.');
+  const inn = el('div', 'dk-in'), fr = el('div', 'dk-f', c[1]), bk = el('div', 'dk-b', c[2]); bk.setAttribute('aria-hidden', 'true');
+  inn.append(fr, bk); card.append(inn); sh.append(card);
+  const ctl = el('div'); sh.append(ctl);
+  const controls = () => {
+    ctl.textContent = '';
+    if (!ses.show) {
+      ctl.append(el('p', 'fc-muted', 'Recall the answer first, out loud or in your head, then flip the card.'));
+      const sa = el('button', 'fc-primary', 'Flip card'); sa.type = 'button'; sa.onclick = flip; ctl.append(sa); return;
+    }
+    const row = el('div', 'fc-row2');
+    [['again', 'Again'], ['hard', 'Hard'], ['good', 'Good'], ['easy', 'Easy']].forEach(([g, l]) => { const r = el('button', 'fc-ghost', l); r.type = 'button'; r.onclick = () => rate(g); row.append(r); });
+    ctl.append(row);
+  };
+  const flip = () => { // the card turns over; tap again to turn it back
+    const on = card.classList.toggle('on'); fr.setAttribute('aria-hidden', String(on)); bk.setAttribute('aria-hidden', String(!on));
+    if (on && !ses.show) { ses.show = true; controls(); }
+  };
+  card.onclick = flip; controls();
 }
 window.Deck = { open: start };
 })();
