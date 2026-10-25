@@ -1755,7 +1755,7 @@ async function submit() {
   const r = await api('/api/auth', { method: 'POST', body: JSON.stringify({ action: mode, username: $('au-u').value, password: $('au-p').value, code: $('au-c').value }) });
   $('au-go').disabled = false;
   if (!r.ok) { $('au-e').textContent = r.j.error || 'Something went wrong. Try again.'; return; }
-  LS.setItem(TK, r.j.token); LS.setItem(UN, r.j.username); $('au-p').value = ''; au.hidden = true; boot();
+  LS.setItem(TK, r.j.token); LS.setItem(UN, r.j.username); if (mode === 'signup') LS.setItem('surgai.tour.pending', r.j.username); $('au-p').value = ''; au.hidden = true; boot();
 }
 $('au-go').onclick = submit; au.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
 
@@ -2056,7 +2056,7 @@ const STEPS = [
 let i = 0, on = false, dir = 1, els = null;
 
 const css = document.createElement('style');
-css.textContent = '#tour-block{position:fixed;inset:0;z-index:90;background:transparent}#tour-block.dim{background:rgba(0,0,0,.72)}#tour-hole{position:fixed;z-index:91;border-radius:14px;box-shadow:0 0 0 100vmax rgba(0,0,0,.72);border:2px solid var(--accent);pointer-events:none;display:none;transition:left .18s,top .18s,width .18s,height .18s}#tour-tip{position:fixed;z-index:92;width:min(310px,calc(100vw - 24px));box-sizing:border-box;background:var(--card);color:var(--ink);border:1px solid var(--accent);border-radius:16px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.5);font:14px/1.45 system-ui}#tour-tip h3{margin:0 0 4px;font:700 16px system-ui}#tour-tip p{margin:0 0 12px;color:var(--ink)}#tour-tip .tn{display:flex;align-items:center;gap:8px}#tour-tip .tc{color:var(--mute);font-size:12px;flex:1}#tour-tip button{border-radius:10px;padding:8px 14px;font:600 14px system-ui;cursor:pointer;border:1px solid var(--line);background:none;color:var(--ink)}#tour-tip button.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}#tour-tip button.skip{border:0;color:var(--mute);padding:8px 6px}#tour-tip .ar{position:absolute;width:14px;height:14px;background:var(--card);border:1px solid var(--accent);transform:rotate(45deg)}#tour-tip .ar.up{top:-8px;border-right:0;border-bottom:0}#tour-tip .ar.dn{bottom:-8px;border-left:0;border-top:0}@media (prefers-reduced-motion:reduce){#tour-hole{transition:none}}';
+css.textContent = '#tour-block{position:fixed;inset:0;z-index:90;background:transparent}#tour-block.dim{background:rgba(0,0,0,.72)}#tour-hole{position:fixed;z-index:91;border-radius:14px;box-shadow:0 0 0 100vmax rgba(0,0,0,.72);border:2px solid var(--accent);pointer-events:none;display:none;transition:left .18s,top .18s,width .18s,height .18s}#tour-tip{position:fixed;z-index:92;width:min(310px,calc(100vw - 24px));box-sizing:border-box;background:var(--card);color:var(--ink);border:1px solid var(--accent);border-radius:16px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.5);font:14px/1.45 system-ui}#tour-tip h3{margin:0 0 4px;font:700 16px system-ui}#tour-tip p{margin:0 0 12px;color:var(--ink)}#tour-tip .tn{display:flex;align-items:center;gap:8px}#tour-tip .tc{color:var(--mute);font-size:12px;flex:1}#tour-tip button{border-radius:10px;padding:8px 14px;font:600 14px system-ui;cursor:pointer;border:1px solid var(--line);background:none;color:var(--ink)}#tour-tip button.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}#tour-tip button.skip{border:1px solid var(--line);color:var(--ink);padding:8px 12px}#tour-tip .ar{position:absolute;width:14px;height:14px;background:var(--card);border:1px solid var(--accent);transform:rotate(45deg)}#tour-tip .ar.up{top:-8px;border-right:0;border-bottom:0}#tour-tip .ar.dn{bottom:-8px;border-left:0;border-top:0}@media (prefers-reduced-motion:reduce){#tour-hole{transition:none}}';
 document.head.append(css);
 
 function visible(el) { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; }
@@ -2080,7 +2080,7 @@ function place() {
   const h = document.createElement('h3'); h.textContent = st.t;
   const p = document.createElement('p'); p.textContent = st.b;
   const nav = document.createElement('div'); nav.className = 'tn';
-  const skip = document.createElement('button'); skip.className = 'skip'; skip.type = 'button'; skip.textContent = i === STEPS.length - 1 ? '' : 'Skip'; skip.onclick = () => end();
+  const skip = document.createElement('button'); skip.className = 'skip'; skip.type = 'button'; skip.textContent = i === STEPS.length - 1 ? '' : 'Skip tour'; skip.onclick = () => end();
   const cnt = document.createElement('span'); cnt.className = 'tc'; cnt.textContent = (i + 1) + ' of ' + STEPS.length;
   const back = document.createElement('button'); back.type = 'button'; back.textContent = 'Back'; back.onclick = () => go(-1); back.hidden = i === 0;
   const next = document.createElement('button'); next.type = 'button'; next.className = 'pri'; next.textContent = i === STEPS.length - 1 ? 'Done' : i === 0 ? 'Start' : 'Next'; next.onclick = () => go(1);
@@ -2154,12 +2154,13 @@ if (row) {
 // First visit: start once the student is signed in and nothing else is on screen
 const poll = setInterval(() => {
   if (store.get(key()) === '1') { clearInterval(poll); return; }
+  const who = store.get('surgai.user'); if (who && store.get('surgai.tour.pending') !== who) return; // logging in to an existing account never starts it
   const auth = document.getElementById('auth'), plans = document.getElementById('plans'), panel = document.getElementById('panel');
   let busy = false;
   try { const s = JSON.parse(store.get('surgai.study.v1') || 'null'); busy = !!(s && s.sess); } catch (e) {}
   if ((auth && !auth.hidden) || (plans && !plans.hidden) || (panel && panel.classList.contains('show')) || busy || document.fullscreenElement || on) return;
   if (!$('#app') || !visible($('#mbtn'))) return;
-  clearInterval(poll); setTimeout(start, 600);
+  clearInterval(poll); store.set(key(), '1'); store.set('surgai.tour.pending', ''); setTimeout(start, 600);
 }, 1000);
 })();
 </script>
