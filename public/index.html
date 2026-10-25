@@ -269,6 +269,19 @@ body.on-study #review{display:flex}
 #review textarea{width:100%;min-height:120px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px;font:inherit;resize:vertical;outline:none}
 .rv-r{font-weight:700;font-size:17px}
 .rv-lab{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+#dk{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:40;align-items:flex-end;justify-content:center}
+#dk.show{display:flex}
+#dk .sheet{min-height:60%;display:flex;flex-direction:column;gap:12px}
+#dkbtn .chev{margin-left:auto;transition:transform .15s}
+#dkbtn[aria-expanded=true] .chev{transform:rotate(180deg)}
+#dkmenu{padding:0 0 4px 18px}
+#dkmenu[hidden],.dk-sub[hidden]{display:none}
+.dk-i{font-size:14px;padding:7px 10px}
+.dk-i small{margin-left:auto;color:var(--mute);font-size:12px}
+.dk-i .chev{margin-left:auto;width:14px;height:14px;transition:transform .15s}
+.dk-i[aria-expanded=true] .chev{transform:rotate(180deg)}
+.dk-sub{padding-left:14px}
+.dk-ans{border-top:1px dashed var(--line);padding-top:10px;color:var(--ink)}
 </style>
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
@@ -277,7 +290,7 @@ body.on-study #review{display:flex}
 <div id="app">
   <aside id="side">
     <div class="brand">SURG AI</div>
-    <div style="padding:0 8px"><button class="nav" id="new"><span>＋</span>New chat</button><button class="nav" id="libbtn"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2zM4 20a2 2 0 0 0 2 1h13M9 8h6"/></svg><span id="libtx">Library</span></button><button class="nav" id="chbtn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg><span id="chtx">Challenge</span></button><button class="nav" id="plbtn"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span id="pltx">Study planner</span></button><button class="nav" id="plansbtn"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Plans</span></button></div>
+    <div style="padding:0 8px"><button class="nav" id="new"><span>＋</span>New chat</button><button class="nav" id="libbtn"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2zM4 20a2 2 0 0 0 2 1h13M9 8h6"/></svg><span id="libtx">Library</span></button><button class="nav" id="chbtn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg><span id="chtx">Challenge</span></button><button class="nav" id="dkbtn" aria-expanded="false" aria-controls="dkmenu"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="7" width="14" height="12" rx="2"/><path d="M7 7V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2"/></svg><span>Deck</span><svg class="ic chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div id="dkmenu" hidden></div><button class="nav" id="plbtn"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span id="pltx">Study planner</span></button><button class="nav" id="plansbtn"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span>Plans</span></button></div>
     <div class="scroll">
       <div class="lbl">Chats</div>
       <div id="list"></div>
@@ -441,6 +454,8 @@ body.on-study #review{display:flex}
   <div class="st-btns"><button id="st-ro-no" class="st-no" type="button">Not now</button><button id="st-confirm" class="st-yes" type="button" disabled>Start Study Mode</button></div>
 </div></div>
 </div>
+
+<div id="dk" role="dialog" aria-modal="true" aria-label="Deck"><div class="sheet" id="dk-body"></div></div>
 
 <div id="chal"><div class="sheet">
   <h2>Daily challenge</h2>
@@ -1706,7 +1721,7 @@ if (window.claude && claude.use) return; // inside Claude: no accounts, Claude a
 const LS = localStorage, TK = 'surgai.token', UN = 'surgai.user', OWN = 'surgai.owner', META = 'surgai.sync';
 const $ = id => document.getElementById(id), tok = () => LS.getItem(TK) || '';
 const jget = k => { try { return JSON.parse(LS.getItem(k)); } catch { return null; } };
-const DATA = ['surgai:v2', 'surgai.study.v1', 'surgai.cards.v1', META];
+const DATA = ['surgai:v2', 'surgai.study.v1', 'surgai.cards.v1', 'surgai.deck.v1', META];
 let base = 0, last = '', timer = 0, halted = false, mode = 'login';
 
 async function api(path, opt = {}) {
@@ -1741,7 +1756,8 @@ $('au-go').onclick = submit; au.addEventListener('keydown', e => { if (e.key ===
 
 function mine() {
   const a = jget('surgai:v2') || {}, s = jget('surgai.study.v1') || {}, c = jget('surgai.cards.v1') || {}, { sess, ...study } = s;
-  return { profile: a.profile || {}, weak: a.weak || {}, study, cards: { decks: c.decks || [] } };
+  const dk = jget('surgai.deck.v1') || {};
+  return { profile: a.profile || {}, weak: a.weak || {}, study, cards: { decks: c.decks || [] }, ...(Object.keys(dk).length ? { deck: dk } : {}) };
 }
 const empty = b => !(b.cards.decks.length || (b.study.notes || []).length || (b.study.tasks || []).length || (b.study.sessions || []).length || Object.keys(b.weak).length || Object.keys(b.profile).filter(k => k !== 'target').length);
 function apply(b) {
@@ -1749,6 +1765,7 @@ function apply(b) {
   LS.setItem('surgai:v2', JSON.stringify(a));
   const s = jget('surgai.study.v1') || {}; LS.setItem('surgai.study.v1', JSON.stringify({ ...(b.study || {}), sess: s.sess || null }));
   LS.setItem('surgai.cards.v1', JSON.stringify(b.cards || { decks: [] }));
+  if (b.deck) LS.setItem('surgai.deck.v1', JSON.stringify(b.deck));
 }
 function take(rd) { LS.setItem(META, JSON.stringify({ v: rd.v, s: JSON.stringify(rd.data) })); apply(rd.data); location.reload(); }
 function wipe() { DATA.forEach(k => LS.removeItem(k)); try { indexedDB.deleteDatabase('surgai-library'); } catch {} }
@@ -1896,6 +1913,109 @@ setInterval(refresh, 300000); refresh();
 window.Review = { add, refresh, open };
 })();
 </script>
+<script id="deck-layer">
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const KEY = 'surgai.deck.v1', INT = [1, 3, 7, 14, 30, 60], NEWMAX = 20; // days to the next review at each level; new cards per session
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+const ld = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const addD = (ds, n) => { const d = new Date(ds + 'T12:00:00'); d.setDate(d.getDate() + n); return ld(d); };
+const nice = ds => new Date(ds + 'T12:00:00').toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+const put = o => { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} };
+const chev = () => { const n = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); n.setAttribute('viewBox', '0 0 24 24'); n.setAttribute('class', 'ic chev'); n.setAttribute('aria-hidden', 'true'); const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', 'M6 9l6 6 6-6'); n.append(p); return n; };
+
+/* Courses. A course with "cards" opens straight into flashcards (Basics). A course with "topics" drops down a list of topics.
+   Add content later as: topics: [{ id: 'upper-limb', name: 'Upper limb', cards: [[1, 'front', 'back'], [2, 'front', 'back']] }]
+   Keep each card's number (the first value) fixed once students start using it, because their progress is saved against it. */
+const DECKS = [
+  { id: 'basics', name: 'Basics', cards: [[1,"Acous- Acu-","hearing"],[2,"Acr-","extremity"],[3,"Aden-","gland"],[4,"Alg- Algia-","pain"],[5,"Angi-","vessel"],[6,"Arthr-","joint"],[7,"Audit-","hearing"],[8,"Aut- Auto-","self"],[9,"Bio-","life living"],[10,"Blast-","germ bud"],[11,"Blephar-","eyelid"],[12,"Brachi-","arm"],[13,"Bronch-","trachea windpipe"],[14,"Bucc-","cheek"],[15,"Capit-","head"],[16,"Carcin-","cancer"],[17,"Cardi- Cardia-","Cardio-"],[18,"Cephal-","head"],[19,"Cerebro-","brain"],[20,"Chole-","bile gall"],[21,"Chondr-","cartilage"],[22,"Cor- Coron-","heart"],[23,"Cost-","rib"],[24,"Crani-","skull"],[25,"Cut-","skin"],[26,"Cyst-","sac bladder"],[27,"Derma- Dermato-","skin"],[28,"Dura-","hard"],[29,"Enter-","intestine"],[30,"Erythr-","red"],[31,"Gastr-","stomach"],[32,"Gloss-","tongue"],[33,"Glyco-","sugar"],[34,"Gyn- Gynec-","female woman"],[35,"Hem- Hemat-","blood"],[36,"Hepar- Hepat-","liver"],[37,"Hist- Histio-","tissue"],[38,"Hydr-","water"],[39,"Hyster-","uterus"],[40,"Ischi-","hip hip joint"],[41,"Kines-","motion"],[42,"Labi-","lip"],[43,"Lacri-","tears"],[44,"Laparo-","loin ﬂank abdomen"],[45,"Leuko-","white"],[46,"Lingu-","tongue"],[47,"Lip-","fat"],[48,"Lumb-","lower back loin"],[49,"Macul-","spot blotch"],[50,"Malign-","bad harmful"],[51,"Mamm- Mast-","breast"],[52,"Meningo-","membrane"],[53,"My- Myo-","muscle"],[54,"Myel-","marrow spinal cord"],[55,"Necro-","corpse dead"],[56,"Nephro-","kidney"],[57,"Neuro-","nerve"],[58,"Ocul-","eye"],[59,"Odont-","tooth"],[60,"Onco-","mass tumor"],[61,"Oo-","egg"],[62,"Ophthalm-","eye"],[63,"Or-","mouth"],[64,"Os- Osseo- Osteo-","bone"],[65,"Osm-","odor sense of small"],[66,"Ot-","ear"],[67,"Palpebr-","eyelid"],[68,"Patho-","disease"],[69,"Pelv-","basin"],[70,"Phag-","to eat"],[71,"Phleb-","vein"],[72,"Phren-","diaphragm"],[73,"Pilo-","hair"],[74,"Pneumo-","lung air"],[75,"Pod-","foot"],[76,"Procto-","anus rectum"],[77,"Pulmon-","lung"],[78,"Ren-","kidneys"],[79,"Rhin-","nose"],[80,"Scler- Sclero-","hard"],[81,"Sep- Septic-","toxic condition due to microorganisms"],[82,"Soma- Somato-","body"],[83,"Stasis- Stat-","standstill"],[84,"Sten-","narrow"],[85,"Tegument-","skin covering"],[86,"Therm-","heat"],[87,"Thromb-","clot lump"],[88,"Vas-","vessel duct"],[89,"Zyg-","joined Zygote."],[90,"A-An-","without lack of deficient"],[91,"Ab-","away from from"],[92,"Ad-Af-","to toward"],[93,"Alb-","white"],[94,"Alveol-","cavity socket"],[95,"Andro-","male masculine"],[96,"Ante-","before"],[97,"Anti-","against"],[98,"Bas-","base foundation"],[99,"Bi-","two double"],[100,"Brady-","slow"],[101,"Cata-","down lower under"],[102,"Circum-","around"],[103,"Cirrh-","yellow"],[104,"Co-Con-","Com with together"],[105,"Contra-","against opposite"],[106,"Crypt-","hidden concealed"],[107,"Cyano-","blue"],[108,"De-","down from"],[109,"Demi-hemi-","half"],[110,"Di-Diplo-","two"],[111,"Dis-","separation apart away from"],[112,"Dys-","painful difficult"],[113,"E-Ec- Ef-","out from out of"],[114,"Ecto-Exo-","outside"],[115,"Em-En-","in on"],[116,"End-Endo-","within inside"],[117,"Epi-","upon on above"],[118,"Eu-","good easy normal"],[119,"Ex-Exo-","outside beyond"],[120,"Extra-","outside beyond in addition"],[121,"Fore-","before in front of"],[122,"Gen-","originate produce form"],[123,"Gingiv-","gum"],[124,"Hemi-","half"],[125,"Heter-Hetero-","other different"],[126,"Homeo-Homo-","unchanging the same steady"],[127,"Hyper-","over above excessive"],[128,"Hypo-","under beneath deficient"],[129,"Im-In-","in inside not"],[130,"Infra-","beneath"],[131,"Inter-","among between"],[132,"Intra-","within inside"],[133,"Ipsi-","same"],[134,"Iso-","equal like"],[135,"Juxta-","near to"],[136,"Later-","side"],[137,"Macro-","large great"],[138,"Mal-","bad abnormal"],[139,"Medi-Meso-","middle"],[140,"Mega-Megalo-","great large"],[141,"Melan-","black"],[142,"Meta-","after beyond"],[143,"Micro-","small"],[144,"Mono-","one"],[145,"Neo-","new"],[146,"Oligo-","small few"],[147,"Ortho-","straight normal"],[148,"Para-","near beyond beside"],[149,"Peri-","around"],[150,"Poly-","much many too much"],[151,"Post-","after beyond"],[152,"Pre-Pro-","before in front of"],[153,"Pseudo-","FALSE"],[154,"Retro-","backward behind"],[155,"Semi-","half"],[156,"Sub-","under beneath below"],[157,"Super-","above beyond"],[158,"Supra-","above over"],[159,"Sym-Syn-","with together"],[160,"Tachy-","rapid"],[161,"Trans-","across through beyond"],[162,"Tri-","three"],[163,"-able","capable of, having ability to"],[164,"-ac, -al","pertaining to"],[165,"-algia","painful condition"],[166,"-an, -ian","pertaining to"],[167,"-ant","having the characteristic of"],[168,"-ary","connected with"],[169,"-asis, -asia, -esis, -osis","condition or state of"],[170,"-asthenia","weakness"],[171,"-ation","process, action, condition"],[172,"-centesis","puncture, usually for drainage"],[173,"-cid, -cide, -cis","cut, kill, destroy"],[174,"-ectomize, -ectomy","excision of, removal of"],[175,"-emia","condition of blood"],[176,"-esthesia","sensation, feeling"],[177,"-fer","carry"],[178,"-gen","agent that produces or originates"],[179,"-genic","producing"],[180,"-gram","record"],[181,"-graph","instrument for recording"],[182,"-ia","state, condition"],[183,"-ician","person associated with"],[184,"-ics","art of, science of Optics."],[185,"-ism","condition, state"],[186,"-itis","inflammation"],[187,"-logy","the study or science of"],[188,"-lysis","dissolution, loosening, destruction"],[189,"-malacia","softening"],[190,"-megaly","enlarged"],[191,"-mers, -meres","parts"],[192,"-oma","tumor"],[193,"-osis","condition, disease"],[194,"-ostomy","create an opening"],[195,"-otomy","surgical incision"],[196,"-pathy","disease"],[197,"-penia","defciency"],[198,"-philic","to like, have an affnity for"],[199,"-phobe, -phobia","fear of, aversion to"],[200,"-plasia, -plasty","forming, molding"],[201,"-pnea","breath"],[202,"-poiesis","making"],[203,"-ptosis","falling, sagging"],[204,"-rrhage","bursting forth, abnormal discharge"],[205,"-rrhea","flow, discharge"],[206,"-scope","instrument for viewing"],[207,"-stomy","creation of a mouth or artifcial opening"],[208,"-tomy","cutting into, incision into"],[209,"-tripsy","crushing"],[210,"-trophy","relating to nutrition or growth"],[211,"-uria","urine"]] },
+  { id: 'anatomy', name: 'Anatomy', topics: [] },
+  { id: 'physiology', name: 'Physiology', topics: [] },
+  { id: 'biochemistry', name: 'Biochemistry', topics: [] },
+  { id: 'pathology', name: 'Pathology', topics: [] }
+];
+
+function stat(key, cards) {
+  const P = load()[key] || {}, t = ld(); let due = 0, nw = 0, learned = 0, next = '';
+  for (const c of cards) { const s = P[c[0]]; if (!s) nw++; else { if (s[1] <= t) due++; else if (!next || s[1] < next) next = s[1]; if (s[0] >= 3) learned++; } }
+  return { due, nw, learned, total: cards.length, next };
+}
+function tag(small, key, cards) { const st = stat(key, cards), n = st.due + Math.min(st.nw, NEWMAX); small.textContent = n ? n + ' to do' : ''; }
+
+function menu() {
+  const m = $('dkmenu'); m.textContent = '';
+  for (const c of DECKS) {
+    const b = el('button', 'nav dk-i'); b.type = 'button'; b.append(el('span', '', c.name));
+    if (c.cards) { const sm = el('small'); tag(sm, c.id, c.cards); b.append(sm); b.onclick = () => start(c.id, c.name, c.cards); m.append(b); continue; }
+    b.append(chev()); b.setAttribute('aria-expanded', 'false');
+    const sub = el('div', 'dk-sub'); sub.hidden = true;
+    if (!c.topics.length) sub.append(el('p', 'fc-muted', 'Topics are coming soon.'));
+    for (const t of c.topics) {
+      const tb = el('button', 'nav dk-i'); tb.type = 'button'; tb.append(el('span', '', t.name)); const sm = el('small'); tag(sm, c.id + '.' + t.id, t.cards); tb.append(sm);
+      tb.onclick = () => start(c.id + '.' + t.id, c.name + ' · ' + t.name, t.cards); sub.append(tb);
+    }
+    b.onclick = () => { sub.hidden = !sub.hidden; b.setAttribute('aria-expanded', String(!sub.hidden)); };
+    m.append(b, sub);
+  }
+}
+$('dkbtn').onclick = () => { const m = $('dkmenu'), open = m.hidden; if (open) menu(); m.hidden = !open; $('dkbtn').setAttribute('aria-expanded', String(open)); };
+
+let ses = null;
+function start(key, name, cards) {
+  const P = load()[key] || {}, t = ld();
+  const due = cards.filter(c => P[c[0]] && P[c[0]][1] <= t).sort((a, b) => (P[a[0]][1] < P[b[0]][1] ? -1 : 1));
+  const nw = cards.filter(c => !P[c[0]]).slice(0, NEWMAX);
+  ses = { key, name, cards, q: due.concat(nw), n0: due.length + nw.length, done: 0, show: false, fail: new Set() };
+  if (typeof closeSide === 'function') closeSide();
+  $('dk').classList.add('show'); draw();
+}
+function close() { $('dk').classList.remove('show'); ses = null; if (!$('dkmenu').hidden) menu(); }
+$('dk').addEventListener('click', e => { if (e.target === $('dk')) close(); });
+
+function rate(g) {
+  const c = ses.q.shift(), all = load(), P = all[ses.key] = all[ses.key] || {}, s = P[c[0]], b = s ? s[0] : -1, t = ld();
+  let nb, days;
+  if (g === 'again') { nb = 0; days = 0; ses.fail.add(c[0]); ses.q.push(c); } // asked again before the session ends
+  else if (ses.fail.has(c[0])) { ses.fail.delete(c[0]); nb = g === 'easy' ? 1 : 0; days = INT[nb]; } // just relearned: short step
+  else if (g === 'hard') { nb = Math.max(b, 0); days = Math.max(1, Math.round(INT[nb] / 2)); }
+  else { nb = Math.min(b + (g === 'easy' ? 2 : 1), 5); days = INT[nb]; }
+  P[c[0]] = [nb, addD(t, days)]; put(all);
+  if (g !== 'again') ses.done++;
+  ses.show = false; draw();
+}
+function draw() {
+  const sh = $('dk-body'); sh.textContent = '';
+  const bar = el('div', 'fc-bar'), x = el('button', 'fc-ghost', 'Close'); x.type = 'button'; x.onclick = close;
+  bar.append(el('b', '', ses.name), el('span', '', ses.q.length ? ses.done + ' of ' + ses.n0 : ''), x); sh.append(bar);
+  if (!ses.q.length) {
+    const st = stat(ses.key, ses.cards), box = el('div', 'fc-card');
+    if (ses.n0) { box.append(el('b', '', 'Session complete'), el('span', 'fc-muted', ses.done + (ses.done === 1 ? ' card' : ' cards') + ' reviewed.')); }
+    else if (st.total) box.append(el('b', '', 'No cards due today'), el('span', 'fc-muted', 'You are all caught up.'));
+    else box.append(el('b', '', 'No cards here yet'), el('span', 'fc-muted', 'Cards for this topic are coming soon.'));
+    if (st.total) box.append(el('span', 'fc-muted', st.learned + ' of ' + st.total + ' well learned.'));
+    if (st.next) box.append(el('span', 'fc-muted', 'Next review: ' + nice(st.next) + '.'));
+    sh.append(box);
+    if (st.nw) { const more = el('button', 'fc-primary', 'Study ' + Math.min(st.nw, NEWMAX) + ' more new cards'); more.type = 'button'; more.onclick = () => start(ses.key, ses.name, ses.cards); sh.append(more); }
+    return;
+  }
+  const c = ses.q[0], card = el('button', 'fc-card'); card.type = 'button'; card.setAttribute('aria-live', 'polite');
+  card.append(el('div', '', c[1]));
+  if (ses.show) card.append(el('div', 'dk-ans', c[2]));
+  card.onclick = () => { if (!ses.show) { ses.show = true; draw(); } };
+  sh.append(card);
+  if (!ses.show) {
+    sh.append(el('p', 'fc-muted', 'Recall the answer first, out loud or in your head, then show it.'));
+    const sa = el('button', 'fc-primary', 'Show answer'); sa.type = 'button'; sa.onclick = card.onclick; sh.append(sa); return;
+  }
+  const row = el('div', 'fc-row2');
+  [['again', 'Again'], ['hard', 'Hard'], ['good', 'Good'], ['easy', 'Easy']].forEach(([g, l]) => { const r = el('button', 'fc-ghost', l); r.type = 'button'; r.onclick = () => rate(g); row.append(r); });
+  sh.append(row);
+}
+window.Deck = { open: start };
+})();
+</script>
 <script id="tour">
 (() => {
 'use strict';
@@ -1913,6 +2033,7 @@ const STEPS = [
   { sel: '#clip', t: 'Attach a file', b: 'Add a PDF, Word or text file to a question and Surg will answer from it.' },
   { sel: '#bn-study', t: 'Study', b: 'Lock in for focus blocks, then write a recall note after each one. Your notes and reviews live here.' },
   { sel: '#bn-cards', t: 'Flashcards', b: 'Upload slides or notes and Surg turns them into flashcards, then schedules your reviews.' },
+  { sel: '#dkbtn', side: true, t: 'Deck', b: 'Ready-made flashcards for active recall and spaced repetition. Open Deck, pick a course, then a topic. Basics opens straight away. Rate each card and Surg brings it back at the right time.' },
   { sel: '#bn-review', rev: true, t: 'Review', b: 'When you get a question wrong or say you don’t know, Surg saves it here and brings it back after 1, 3, 7 and 14 days. The number on the icon is how many are due today.' },
   { sel: '#libbtn', side: true, t: 'Library', b: 'Add your textbooks and notes. They stay private on this device, and Surg uses the most relevant parts when you ask.' },
   { sel: '#chbtn', side: true, t: 'Daily challenge', b: 'One small task a day to build your streak, in medicine and in life.' },
