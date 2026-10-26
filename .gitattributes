@@ -8,3 +8,6 @@
 *.PNG filter=lfs diff=lfs merge=lfs -text
 *.JPG filter=lfs diff=lfs merge=lfs -text
 *.JPEG filter=lfs diff=lfs merge=lfs -text
+public/icon-192.png filter=lfs diff=lfs merge=lfs -text
+public/icon-512.png filter=lfs diff=lfs merge=lfs -text
+public/surg-ai-logo.png filter=lfs diff=lfs merge=lfs -text
