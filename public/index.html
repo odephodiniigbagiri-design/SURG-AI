@@ -780,7 +780,9 @@ $("hf").onclick=()=>{
   save();syncVoice();
 };
 syncVoice();
-const PLAN={plan:"claude",ai:true,voice:true,libChars:12000000,until:0,trialEnds:0,left:null};
+/* Library size: total characters one student can keep (a big textbook is roughly 3,000k to 4,000k). Raise or lower this number. */
+const LIB_MIN=16000000;
+const PLAN={plan:"claude",ai:true,voice:true,libChars:LIB_MIN,until:0,trialEnds:0,left:null};
 const LIB={meta:[],chunks:null,ok:true};
 const MAMMOTH="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js";
 const PDFJS="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
@@ -808,7 +810,7 @@ async function extract(f){
     if(!window.pdfjsLib){await loadScript(PDFJS);await loadScript(PDFW);pdfjsLib.GlobalWorkerOptions.workerSrc=PDFW;}
     const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise;
     let out="";
-    for(let p=1;p<=pdf.numPages;p++){const tc=await (await pdf.getPage(p)).getTextContent();out+=tc.items.map(i=>i.str).join(" ")+"\n\n";}
+    for(let p=1;p<=pdf.numPages;p++){if(window.onPdfPage)window.onPdfPage(p,pdf.numPages);const tc=await (await pdf.getPage(p)).getTextContent();out+=tc.items.map(i=>i.str).join(" ")+"\n\n";}
     return out;
   }
   throw new Error("type");
@@ -883,6 +885,7 @@ function renderLib(){
   $("libtx").textContent="Library"+(LIB.meta.length?" ("+LIB.meta.length+")":"");
   $("libadd").style.display=LIB.ok?"":"none";
   $("libnote").textContent=LIB.ok?"Private to you. Files are stored only on this device and browser and are never shared. When you ask a question, the most relevant excerpts are sent to Claude to answer it.":"Your browser isn’t allowing this page to store files (private browsing can block it), so the library isn’t available. You can still attach a file to a single chat with the paperclip.";
+  if(LIB.ok){const u=LIB.meta.reduce((a,m)=>a+(m.chars||0),0);$("libnote").textContent+=" Using "+Math.round(u/1000).toLocaleString()+"k of "+Math.round(PLAN.libChars/1000).toLocaleString()+"k characters.";}
   const l=$("libl");l.innerHTML="";
   if(!LIB.meta.length){l.innerHTML='<div class="empty">No files yet.</div>';return;}
   LIB.meta.slice().sort((a,b)=>b.at-a.at).forEach(m=>{
@@ -919,7 +922,7 @@ $("libbtn").onclick=()=>{$("lib").classList.add("show");closeSide();renderLib();
 $("libclose").onclick=()=>$("lib").classList.remove("show");
 $("lib").addEventListener("click",e=>{if(e.target.id==="lib")$("lib").classList.remove("show");});
 $("libadd").onclick=()=>pick(async f=>{
-  const st=$("libst");st.textContent="Reading "+f.name+"…";
+  const st=$("libst");st.textContent="Reading "+f.name+"…";window.onPdfPage=(p,n)=>{st.textContent="Reading "+f.name+" (page "+p+" of "+n+")…";};
   let len=0;const used=LIB.meta.reduce((a,m)=>a+(m.chars||0),0);
   try{
     const t=(await extract(f)).trim();len=t.length;
@@ -930,7 +933,7 @@ $("libadd").onclick=()=>pick(async f=>{
     st.textContent="Added "+f.name+".";
   }catch(e){
     st.textContent=e&&e.message==="full"?"This file has about "+Math.round(len/1000)+"k characters and the library has room for "+Math.max(0,Math.round((PLAN.libChars-used)/1000))+"k more (limit "+Math.round(PLAN.libChars/1000)+"k). Split big books into chapters and add them one at a time.":readErr(e);
-  }
+  }finally{window.onPdfPage=null;}
 });
 refreshLib();
 function setOrb(s){$("orb").className=s;$("tstat").textContent={idle:"Tap to talk",listen:"Listening… tap when you’re done",think:"Surg is thinking…",speak:"Surg is speaking. Tap to interrupt."}[s];}
@@ -1856,7 +1859,7 @@ function chip() {
 }
 async function me() {
   const r = await api('/api/me'); if (!r.ok) return; const j = r.j;
-  Object.assign(PLAN, { plan: j.plan, ai: j.plan !== 'none', voice: !!j.limits.voice, libChars: j.limits.libraryChars, until: j.until || 0, trialEnds: j.trialEnds || 0, left: Math.max(0, j.limits.monthlyTokens - j.usage.month) });
+  Object.assign(PLAN, { plan: j.plan, ai: j.plan !== 'none', voice: !!j.limits.voice, libChars: Math.max(+j.limits.libraryChars || 0, LIB_MIN), until: j.until || 0, trialEnds: j.trialEnds || 0, left: Math.max(0, j.limits.monthlyTokens - j.usage.month) });
   chip(); Plans.refresh(); if (j.plan === 'none') Plans.open('expired');
 }
 async function webSample(input, o = {}) {
