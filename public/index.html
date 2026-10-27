@@ -791,8 +791,9 @@ $("hf").onclick=()=>{
 };
 syncVoice();
 /* Library size: total characters one student can keep (a big textbook is roughly 3,000k to 4,000k). Raise or lower this number. */
-const LIB_MIN=16000000;
-const PLAN={plan:"claude",ai:true,voice:true,libChars:LIB_MIN,until:0,trialEnds:0,left:null};
+/* Library room per plan, at about 4,000k characters per large textbook: trial 1, Pro 4, Ultra 8. A bigger number from the server still wins. */
+const LIB_FLOOR={trial:4000000,pro:16000000,ultra:32000000};
+const PLAN={plan:"claude",ai:true,voice:true,libChars:12000000,until:0,trialEnds:0,left:null};
 const LIB={meta:[],chunks:null,ok:true};
 const MAMMOTH="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js";
 const PDFJS="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
@@ -1663,7 +1664,8 @@ window.startListen = function () { if (PLAN.voice) return _sl(); };
 
 /* Plans page */
 const P = [
-  { id: 'trial', name: 'Free trial', sub: 'A small taste of Surg before you pay', price: '$0', per: 'for 3 days', cta: 'Starts when you sign up', head: 'What the free trial includes:', f: ['45,000 tokens in total (roughly 7 to 10 chat messages), with a daily limit of 15,000', 'Text chat with Surg in all 7 AI modes', 'Flashcards, daily challenge and study planner (they use the same tokens)', 'Study Mode and revision notes (these use no tokens)', 'A private library of about 1 textbook', 'No voice conversation', 'No card needed. It ends after 3 days or when the tokens run out, whichever comes first', 'Surg Pro gives you 900,000 tokens every month'] },
+  { id: 'trial', name: 'Free trial', sub: 'A small taste of Surg before you pay', price: '$0', per: 'for 3 days', cta: 'Starts when you sign up', head: 'What the free trial includes:', f: ['45,000 tokens in total (roughly 7 to 10 chat messages), with a daily limit of 15,000', 'Text chat with Surg in all 7 AI modes', 'Flashcards, daily challenge and study planner (they use the same tokens)', 'Study Mode and revision notes (these use no tokens)',
+    'Deck, Master deck and your Today screen: ready-made flashcards, spaced repetition, streak and weekly progress (no tokens used)', 'A private library of about 1 textbook', 'No voice conversation', 'No card needed. It ends after 3 days or when the tokens run out, whichever comes first', 'Surg Pro gives you 900,000 tokens every month'] },
   { id: 'pro', name: 'Surg Pro', sub: 'Your daily study partner', price: '$1.10', per: 'USD / month', cta: 'Choose Pro', head: 'Everything you need to study with Surg:', f: [
     '900,000 tokens every month (roughly 140 to 200 chat messages, or about 150 flashcard sets of 20 cards; our estimate)',
     'Text chat with Surg (no voice)',
@@ -1671,6 +1673,8 @@ const P = [
     'Flashcards from your slides and notes, with spaced repetition',
     'Study Mode with focus blocks and revision notes',
     'Daily challenge and study planner',
+    'Deck and Master deck: nearly 15,000 ready-made flashcards with pictures, plus anatomy, embryology and neuroanatomy decks, all with spaced repetition',
+    'Today screen with your daily revision queue, streak and weekly progress, and the option to install Surg on your phone',
     'Upload PDF, PowerPoint, Word or text into a private library of about 4 textbooks',
     'Weak-area tracking that tailors Surg’s answers',
     'Progress saved to your account on any device'] },
@@ -1869,7 +1873,7 @@ function chip() {
 }
 async function me() {
   const r = await api('/api/me'); if (!r.ok) return; const j = r.j;
-  Object.assign(PLAN, { plan: j.plan, ai: j.plan !== 'none', voice: !!j.limits.voice, libChars: Math.max(+j.limits.libraryChars || 0, LIB_MIN), until: j.until || 0, trialEnds: j.trialEnds || 0, left: Math.max(0, j.limits.monthlyTokens - j.usage.month) });
+  Object.assign(PLAN, { plan: j.plan, ai: j.plan !== 'none', voice: !!j.limits.voice, libChars: Math.max(+j.limits.libraryChars || 0, LIB_FLOOR[j.plan] || 0), until: j.until || 0, trialEnds: j.trialEnds || 0, left: Math.max(0, j.limits.monthlyTokens - j.usage.month) });
   chip(); Plans.refresh(); if (j.plan === 'none') Plans.open('expired');
 }
 async function webSample(input, o = {}) {
@@ -2093,11 +2097,13 @@ const STEPS = [
   { sel: '#mbtn', t: 'Choose a mode', b: 'Tutor teaches you. Viva and OSCE examine you. Case walks through patients. Coach plans your study and Research teaches appraisal. Switch whenever you like.' },
   { sel: '.pill', t: 'Ask Surg here', b: 'Type a topic or question. Surg explains briefly, then asks you one question to make you think.' },
   { sel: '#clip', t: 'Attach a file', b: 'Add a PDF, Word or text file to a question and Surg will answer from it.' },
+  { sel: '#tdbtn', side: true, t: 'Today', b: 'Open Today to see what is due for review, your streak and how your week is going. You can install Surg on your phone from here too.' },
   { sel: '#bn-study', t: 'Study', b: 'Lock in for focus blocks, then write a recall note after each one. Your notes and reviews live here.' },
   { sel: '#bn-cards', t: 'Flashcards', b: 'Upload slides or notes and Surg turns them into flashcards, then schedules your reviews.' },
-  { sel: '#dkbtn', side: true, t: 'Deck', b: 'Ready-made flashcards for active recall and spaced repetition. Open Deck, pick a course, then a topic. Basics opens straight away. Rate each card and Surg brings it back at the right time.' },
+  { sel: '#dkbtn', side: true, t: 'Deck', b: 'Ready-made flashcards for active recall and spaced repetition. Open Deck, pick a course, then a topic, such as Anatomy, then Embryology or Neuroanatomy. Basics opens straight away. Rate each card and Surg brings it back at the right time.' },
+  { sel: '#mdbtn', side: true, t: 'Master deck', b: 'Nearly 15,000 flashcards with pictures. Search by topic, jump to a card number, flip it, then rate it Again, Hard, Good or Easy so it comes back at the right time.' },
   { sel: '#bn-review', rev: true, t: 'Review', b: 'When you get a question wrong or say you don’t know, Surg saves it here and brings it back after 1, 3, 7 and 14 days. The number on the icon is how many are due today.' },
-  { sel: '#libbtn', side: true, t: 'Library', b: 'Add your textbooks and notes. They stay private on this device, and Surg uses the most relevant parts when you ask.' },
+  { sel: '#libbtn', side: true, t: 'Library', b: 'Add your textbooks and notes, including large textbooks. They stay private on this device, and Surg uses the most relevant parts when you ask.' },
   { sel: '#chbtn', side: true, t: 'Daily challenge', b: 'One small task a day to build your streak, in medicine and in life.' },
   { sel: '#plbtn', side: true, t: 'Study planner', b: 'Tell Surg your hours and topics and get a plan for your session or day.' },
   { sel: '#pbtn', side: true, t: 'Your profile', b: 'Add your year, courses and target grade so Surg tailors its answers. It also tracks your weak areas.' },
