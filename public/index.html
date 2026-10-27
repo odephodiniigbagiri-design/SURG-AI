@@ -318,6 +318,7 @@ body.on-study #review{display:flex}
 
 .brand{display:flex;align-items:center;gap:10px}.brand img{width:34px;height:34px;object-fit:contain;flex:none}
 #instbtn[hidden]{display:none}
+#instbar{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 72px);z-index:35;max-width:520px;margin:0 auto;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.35)}#instbar[hidden]{display:none}#instbar span{flex:1;font-size:14px}
 /* Today */
 #td{position:fixed;inset:0;z-index:40;background:var(--bg);display:none;overflow:auto;padding:env(safe-area-inset-top,0px) 14px calc(env(safe-area-inset-bottom,0px) + 20px)}
 #td.show{display:block}#td .td-w{max-width:640px;margin:0 auto}
@@ -2429,6 +2430,7 @@ const poll = setInterval(() => {
 </script>
 
 <div id="td" role="dialog" aria-modal="true" aria-label="Today"><div class="td-w" id="td-w"></div></div>
+<div id="instbar" hidden><span>Install Surg on your phone to open it in one tap.</span><button class="fc-primary" id="instgo" type="button">Install</button><button class="fc-ghost" id="instx" type="button" aria-label="Dismiss">✕</button></div>
 <script id="today-layer">
 (function () {
   'use strict';
@@ -2471,9 +2473,13 @@ const poll = setInterval(() => {
   function badge() { try { var n = dueTotal() + masterQueue().nw.length * 0; $('tdn').textContent = n ? n + ' due' : ''; } catch (e) {} }
 
   var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
-  function syncInst() { $('instbtn').hidden = !window.__ip || !!standalone; }
+  var IBAR = 'surgai.installbar'; // the bar stays away for a week after it is dismissed
+  function barOk() { try { return Date.now() - (+localStorage.getItem(IBAR) || 0) > 6048e5; } catch (e) { return true; } }
+  function syncInst() { var ok = !!window.__ip && !standalone; $('instbtn').hidden = !ok; $('instbar').hidden = !(ok && barOk()); }
   function doInstall() { var e = window.__ip; if (!e) return; e.prompt(); if (e.userChoice) e.userChoice.then(function () { window.__ip = null; syncInst(); }); }
   window.addEventListener('surg-ip', syncInst); syncInst();
+  $('instgo').onclick = function () { doInstall(); };
+  $('instx').onclick = function () { try { localStorage.setItem(IBAR, String(Date.now())); } catch (e) {} $('instbar').hidden = true; };
   $('instbtn').onclick = function () { if (typeof closeSide === 'function') closeSide(); doInstall(); };
   function b64(k) { var p = '='.repeat((4 - k.length % 4) % 4), r = atob((k + p).replace(/-/g, '+').replace(/_/g, '/')), o = new Uint8Array(r.length); for (var i = 0; i < r.length; i++) o[i] = r.charCodeAt(i); return o; }
   function sendSub() { // tells your server when to remind this student; the server side is the api/push setup
