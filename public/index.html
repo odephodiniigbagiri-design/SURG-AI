@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SURG AI: the AI tutor for medical students who want distinctions</title>
+<meta name="description" content="Surg teaches you to think like a clinician. Seven study modes, spaced-repetition flashcards, Study Mode and a private library for $1.10 a month.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap">
+<style>
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+:root{color-scheme:dark;--bg:#000;--card:#0b0b0e;--line:#222228;--tx:#fff;--mut:#a3a3ad;--am:#ffb547;--ro:#ff5d73;--vi:#7c6cff;--te:#3de0c5;
+--sans:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--ser:Fraunces,Georgia,serif;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--tx);font:400 17px/1.6 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}.w{max-width:1120px;margin:0 auto;padding:0 22px;position:relative}
+:focus-visible{outline:2px solid var(--am);outline-offset:3px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:rgba(0,0,0,.72);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+header .w{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand b{display:block;font:800 19px/1 var(--ser);letter-spacing:.05em}.brand small{display:block;font-size:11.5px;color:var(--mut);margin-top:3px}
+nav{display:flex;gap:22px;align-items:center;font-size:15px;color:var(--mut)}nav a{text-decoration:none}nav a:hover{color:#fff}
+.btn{position:relative;display:inline-block;background:linear-gradient(120deg,var(--am),#ff8a4c);color:#000;font-weight:600;text-decoration:none;padding:13px 24px;border-radius:999px;font-size:16px;overflow:hidden;transition:transform .25s,box-shadow .25s}
+.btn::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.6) 50%,transparent 70%);transform:translateX(-120%);animation:shine 3.2s infinite}
+.btn:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 10px 34px -8px var(--am)}
+.btn.ghost{background:none;color:#fff;border:1px solid #3a3a42}.btn.ghost::after{display:none}
+@keyframes shine{0%,55%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+/* hero */
+.hero{position:relative;padding:70px 0 40px;overflow:hidden}
+.aur{position:absolute;inset:-20% -10% auto;height:120%;filter:blur(70px);opacity:.55;z-index:0}
+.aur i{position:absolute;border-radius:50%;animation:drift 16s ease-in-out infinite alternate}
+.aur i:nth-child(1){width:46vw;height:46vw;left:2%;top:0;background:var(--vi)}
+.aur i:nth-child(2){width:38vw;height:38vw;right:4%;top:10%;background:var(--ro);animation-delay:-5s}
+.aur i:nth-child(3){width:34vw;height:34vw;left:34%;top:34%;background:var(--am);animation-delay:-9s;opacity:.7}
+@keyframes drift{to{transform:translate(8vw,6vh) scale(1.25)}}
+.hero .w{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;align-items:center;z-index:1}
+h1{font:800 clamp(38px,5.8vw,68px)/1.04 var(--ser);margin:0 0 20px;letter-spacing:-.015em}
+.rot{display:inline-block;background:linear-gradient(90deg,var(--am),var(--ro),var(--vi),var(--am));background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:flow 6s linear infinite}
+.caret{display:inline-block;width:3px;height:.9em;background:var(--am);margin-left:4px;vertical-align:-.08em;animation:bl 1s steps(1) infinite}
+@keyframes flow{to{background-position:300% 0}}@keyframes bl{50%{opacity:0}}
+.lead{color:#c9c9d1;font-size:19px;max-width:30em;margin:0 0 28px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}.note{font-size:14px;color:var(--mut);margin-top:14px}
+.chat{position:relative;background:rgba(11,11,14,.8);backdrop-filter:blur(8px);border-radius:22px;padding:18px;font-size:15px;min-height:400px;animation:float 7s ease-in-out infinite}
+.chat::before,.plan.hi::before{content:"";position:absolute;inset:-1.5px;border-radius:inherit;padding:1.5px;background:conic-gradient(from var(--a),var(--am),var(--ro),var(--vi),var(--te),var(--am));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:spin 6s linear infinite}
+@keyframes spin{to{--a:360deg}}@keyframes float{50%{transform:translateY(-10px)}}
+.bar{display:flex;justify-content:space-between;align-items:center;color:var(--mut);font-size:13px;margin-bottom:14px}
+.mode{border:1px solid var(--line);border-radius:999px;padding:2px 12px;color:#fff}
+.m{padding:11px 14px;border-radius:14px;margin:0 0 10px;max-width:92%;opacity:0;transform:translateY(12px) scale(.97);transition:.5s cubic-bezier(.2,.9,.3,1.2)}
+.m.on{opacity:1;transform:none}.m.u{background:#1d1d22;margin-left:auto}
+.m.s{background:#241a0a;border:1px solid #4a3412}.m.s em{display:block;font-style:normal;color:var(--am);font-size:12.5px;margin-bottom:3px}
+.dots{display:inline-flex;gap:4px;padding:14px;background:#241a0a;border-radius:14px}.dots b{width:6px;height:6px;border-radius:50%;background:var(--am);animation:dt 1s infinite}.dots b:nth-child(2){animation-delay:.15s}.dots b:nth-child(3){animation-delay:.3s}
+@keyframes dt{40%{transform:translateY(-6px)}}
+.ecg{display:block;width:100%;height:70px;margin-top:34px}.ecg path{fill:none;stroke:var(--ro);stroke-width:2.5;stroke-linecap:round;stroke-dasharray:1200;stroke-dashoffset:1200;animation:draw 3.2s linear infinite;filter:drop-shadow(0 0 6px var(--ro))}
+@keyframes draw{60%,100%{stroke-dashoffset:0}}
+/* marquee */
+.mq{border-block:1px solid var(--line);overflow:hidden;padding:16px 0;background:#050507}
+.mq div{display:flex;gap:14px;width:max-content;animation:mq 26s linear infinite}.mq:hover div{animation-play-state:paused}
+.mq span{border:1px solid var(--line);border-radius:999px;padding:7px 20px;font:600 15px var(--sans);white-space:nowrap}
+.mq span:nth-child(3n){color:var(--am)}.mq span:nth-child(3n+1){color:var(--te)}.mq span:nth-child(3n+2){color:var(--ro)}
+@keyframes mq{to{transform:translateX(-50%)}}
+/* sections */
+section{padding:84px 0}
+h2{font:800 clamp(30px,4.2vw,46px)/1.1 var(--ser);margin:0 0 14px;max-width:16em;letter-spacing:-.01em}
+.sub{color:var(--mut);max-width:34em;margin:0 0 40px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:46px 0}
+.stat{text-align:center}.stat b{display:block;font:800 clamp(34px,5vw,56px)/1 var(--ser);background:linear-gradient(180deg,#fff,#8a8a95);-webkit-background-clip:text;background-clip:text;color:transparent}.stat span{color:var(--mut);font-size:14.5px}
+.bento{display:grid;gap:16px;grid-template-columns:repeat(6,1fr)}
+.card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;overflow:hidden;transition:transform .35s,border-color .35s}
+.card::after{content:"";position:absolute;inset:0;background:radial-gradient(320px circle at var(--mx,50%) var(--my,50%),rgba(255,181,71,.16),transparent 60%);opacity:0;transition:opacity .3s;pointer-events:none}
+.card:hover{transform:translateY(-4px);border-color:#3b3b44}.card:hover::after{opacity:1}
+.card h3{font:600 19px/1.3 var(--sans);margin:0 0 8px}.card p{margin:0;color:var(--mut);font-size:15.5px}
+.s2{grid-column:span 2}.s3{grid-column:span 3}.s4{grid-column:span 4}
+.viz{margin-top:20px;min-height:90px;display:flex;align-items:center;justify-content:center}
+/* flashcard */
+.fl{perspective:700px;width:100%;max-width:260px;height:110px}.fl div{position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:flip 6s ease-in-out infinite}
+.fl span{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:12px;border-radius:14px;backface-visibility:hidden;font-size:14.5px;font-weight:500}
+.fl .f{background:#1b1630;border:1px solid #3b3270}.fl .b{background:#0d2a26;border:1px solid #1f6a5e;transform:rotateY(180deg)}
+@keyframes flip{0%,38%{transform:rotateY(0)}50%,88%{transform:rotateY(180deg)}100%{transform:rotateY(360deg)}}
+/* ring */
+.ring{position:relative;width:120px;height:120px}.ring svg{transform:rotate(-90deg)}.ring circle{fill:none;stroke-width:8}
+.ring .tr{stroke:#1d1d22}.ring .pr{stroke:var(--ro);stroke-linecap:round;stroke-dasharray:314;stroke-dashoffset:0;animation:ringa 8s linear infinite;filter:drop-shadow(0 0 5px var(--ro))}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font:700 22px var(--ser)}
+@keyframes ringa{to{stroke-dashoffset:314}}
+/* bars */
+.bars{display:flex;align-items:flex-end;gap:10px;height:90px;width:100%}.bars i{flex:1;border-radius:6px 6px 0 0;background:linear-gradient(var(--am),var(--ro));height:var(--h);transform-origin:bottom;transform:scaleY(.08);transition:transform 1.1s cubic-bezier(.2,.9,.3,1.1)}
+.in .bars i{transform:scaleY(1)}.bars i:nth-child(2){transition-delay:.1s}.bars i:nth-child(3){transition-delay:.2s}.bars i:nth-child(4){transition-delay:.3s}.bars i:nth-child(5){transition-delay:.4s}
+/* review path */
+.rv{display:flex;align-items:center;width:100%}.rv i{flex:1;height:2px;background:var(--line);position:relative}.rv i::after{content:"";position:absolute;inset:0;background:var(--te);transform:scaleX(0);transform-origin:left;transition:transform .8s}
+.in .rv i::after{transform:scaleX(1)}.rv i:nth-of-type(2)::after{transition-delay:.7s}.rv i:nth-of-type(3)::after{transition-delay:1.4s}
+.rv u{text-decoration:none;font:600 13px var(--sans);width:42px;height:42px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--te);background:#04201b;flex:none;animation:pop 3s infinite}.rv u:nth-of-type(2){animation-delay:.5s}.rv u:nth-of-type(3){animation-delay:1s}.rv u:nth-of-type(4){animation-delay:1.5s}
+@keyframes pop{50%{box-shadow:0 0 0 8px rgba(61,224,197,.12)}}
+/* library */
+.lib{position:relative;width:120px;height:100px}.lib span{position:absolute;font-size:30px;animation:bob 4s ease-in-out infinite}.lib span:nth-child(1){left:0;top:10px}.lib span:nth-child(2){left:42px;top:0;animation-delay:-1s}.lib span:nth-child(3){left:84px;top:14px;animation-delay:-2s}.lib em{position:absolute;left:36px;bottom:-4px;font-style:normal;font-size:12px;color:var(--te);border:1px solid var(--te);border-radius:999px;padding:1px 10px;white-space:nowrap}
+@keyframes bob{50%{transform:translateY(-9px) rotate(5deg)}}
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;position:relative}
+.steps::before{content:"";position:absolute;left:8%;right:8%;top:41px;height:2px;background:linear-gradient(90deg,var(--am),var(--ro),var(--vi));transform:scaleX(0);transform-origin:left;transition:transform 1.8s ease}
+.steps.in::before{transform:scaleX(1)}.steps .card{padding-top:30px}
+.steps .n{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:#000;border:2px solid var(--am);font:800 18px var(--ser);margin-bottom:18px;position:relative;z-index:1}
+/* pricing */
+.pg{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px}
+.plan{position:relative}.plan.hi{border-color:transparent}.plan.hi::before{border-radius:20px}
+.price{font:800 48px/1 var(--ser);margin:8px 0 2px}.price small{font:400 15px var(--sans);color:var(--mut)}
+.plan ul{padding:0;margin:18px 0 24px;list-style:none;color:#cfcfd6;font-size:15.5px}.plan li{margin:8px 0;padding-left:26px;position:relative}.plan li::before{content:"\2713";position:absolute;left:0;color:var(--te)}
+.tag{position:absolute;right:18px;top:18px;background:var(--am);color:#000;font-size:12px;font-weight:600;border-radius:999px;padding:2px 12px}
+details{border-bottom:1px solid var(--line);padding:18px 0}summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:16px}
+summary::after{content:"+";color:var(--am);font-size:24px;line-height:1;transition:transform .35s}details[open] summary::after{transform:rotate(135deg)}
+details p{color:var(--mut);margin:12px 0 0;max-width:42em;animation:dn .4s}@keyframes dn{from{opacity:0;transform:translateY(-6px)}}
+.final{text-align:center;position:relative;overflow:hidden}.final .aur{opacity:.4;top:-60%}.final h2{margin-inline:auto}.final .sub{margin-inline:auto}.final .btn{font-size:18px;padding:16px 34px;animation:pulse 2.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,181,71,.5)}100%{box-shadow:0 0 0 26px rgba(255,181,71,0)}}
+footer{border-top:1px solid var(--line);padding:34px 0 48px;font-size:14px;color:var(--mut)}footer p{margin:6px 0;max-width:50em}
+/* reveal */
+.rev{opacity:0;transform:translateY(34px);transition:opacity .8s,transform .8s cubic-bezier(.2,.8,.2,1);transition-delay:var(--d,0s)}.rev.in{opacity:1;transform:none}
+@media(max-width:900px){.hero .w,.steps,.stats{grid-template-columns:1fr 1fr}.hero .w,.steps{grid-template-columns:1fr}.bento{grid-template-columns:1fr}.s2,.s3,.s4{grid-column:auto}nav a:not(.btn){display:none}.steps::before{display:none}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rev,.m{opacity:1;transform:none}.bars i,.rv i::after,.steps::before{transform:none}}
+</style></head>
+<body>
+<header><div class="w"><div class="brand"><b>SURG AI</b><small>Educational use only</small></div>
+<nav><a href="#features">Features</a><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a><a class="btn" data-app href="/index.html">Start free trial</a></nav></div></header>
+<main>
+<div class="hero"><div class="aur"><i></i><i></i><i></i></div>
+<div class="w"><div>
+<h1>Medical school, made faster. Built for <span class="rot" id="rot">distinctions</span><span class="caret"></span></h1>
+<p class="lead">Surg is an AI tutor that questions you like a good examiner, remembers your weak spots and schedules your reviews. Just $1.10 a month.</p>
+<div class="cta"><a class="btn" data-app href="/index.html">Start 5-day free trial</a><a class="btn ghost" href="#features">See what Surg does</a></div>
+<p class="note">No card needed. Made for medical students in Africa.</p>
+<svg class="ecg" viewBox="0 0 400 70" preserveAspectRatio="none" aria-hidden="true"><path d="M0 40H90l12-6 10 6h18l8-34 14 62 10-28h30l10-8 10 8h188"/></svg>
+</div>
+<div class="chat" id="chat" aria-label="Example conversation with Surg"><div class="bar"><span>SURG AI</span><span class="mode">Tutor</span></div>
+<p class="m u">Why does a common peroneal nerve lesion cause foot drop?</p>
+<p class="m s"><em>Surg</em>It supplies the anterior and lateral leg compartments, so dorsiflexion and eversion are lost and the toes drag.</p>
+<p class="m s"><em>Surg</em>Your turn: where is the nerve most exposed, and what sensory clue separates it from a sciatic lesion?</p>
+<p class="m u">Neck of the fibula. Sensation on the dorsum of the foot?</p>
+<p class="m s"><em>Surg</em>Right: the fibular neck. Missing: the first web space is the key sensory area.</p></div>
+</div></div>
+<div class="mq" aria-hidden="true"><div id="mq"></div></div>
+
+<div class="w"><div class="stats rev" id="stats">
+<div class="stat"><b data-n="7">0</b><span>study modes</span></div>
+<div class="stat"><b data-n="1.1" data-p="$" data-d="2">0</b><span>a month for Pro</span></div>
+<div class="stat"><b data-n="5">0</b><span>days free trial</span></div>
+<div class="stat"><b data-n="900" data-s="k">0</b><span>tokens a month</span></div></div></div>
+
+<section id="features"><div class="w">
+<h2 class="rev">Everything a preclinical student needs.</h2>
+<p class="sub rev">A tutor, flashcards, a focus timer and your own library in one app that students here can afford.</p>
+<div class="bento">
+<div class="card s4 rev"><h3>Seven ways to be taught</h3><p>Switch modes any time. Surg keeps the mode until you change it. Teaching is a short explanation, then one question that makes you reason.</p><div class="viz" style="flex-wrap:wrap;gap:8px"><span class="mode">Tutor</span><span class="mode">Viva</span><span class="mode">OSCE</span><span class="mode">Examiner</span><span class="mode">Case discussion</span><span class="mode">Study coach</span><span class="mode">Research</span></div></div>
+<div class="card s2 rev" style="--d:.1s"><h3>Flashcards, written by Surg</h3><p>Upload slides, pick a topic, get cards.</p><div class="viz"><div class="fl"><div><span class="f">What nerve is injured at the fibular neck?</span><span class="b">Common peroneal nerve</span></div></div></div></div>
+<div class="card s2 rev"><h3>Study Mode: Lock in</h3><p>25-minute focus blocks, 5-minute recall breaks, a note after each block.</p><div class="viz"><div class="ring"><svg width="120" height="120"><circle class="tr" cx="60" cy="60" r="50"/><circle class="pr" cx="60" cy="60" r="50"/></svg><b>25:00</b></div></div></div>
+<div class="card s2 rev" style="--d:.1s"><h3>Knows your weak spots</h3><p>Real misses are tracked and shape later answers.</p><div class="viz"><div class="bars"><i style="--h:88%"></i><i style="--h:62%"></i><i style="--h:74%"></i><i style="--h:40%"></i><i style="--h:22%"></i></div></div></div>
+<div class="card s2 rev" style="--d:.2s"><h3>Spaced review</h3><p>Cards come back when you are due, rated Again, Hard, Good or Easy.</p><div class="viz"><div class="rv"><u>D1</u><i></i><u>D3</u><i></i><u>D7</u><i></i><u>D14</u></div></div></div>
+<div class="card s3 rev"><h3>Your library stays yours</h3><p>PDFs, slides and Word files live only in your browser. Surg names the file it used.</p><div class="viz"><div class="lib"><span>📄</span><span>📊</span><span>📝</span><em>on your device</em></div></div></div>
+<div class="card s3 rev" style="--d:.1s"><h3>Daily challenge and study planner</h3><p>A daily task to make you better in life and in medicine, and a plan for each session or day, so you always know the next step.</p></div>
+</div></div></section>
+
+<section id="how"><div class="w"><h2 class="rev">From first question to confident answer.</h2><p class="sub rev">Three steps, repeated every study day.</p>
+<div class="steps rev" id="steps">
+<div class="card"><div class="n">1</div><h3>Ask or upload</h3><p>Start with a question, or add lecture slides and notes to your private library.</p></div>
+<div class="card"><div class="n">2</div><h3>Think it through</h3><p>Surg explains briefly, then questions you the way a viva does.</p></div>
+<div class="card"><div class="n">3</div><h3>Review on schedule</h3><p>Flashcards and weak areas return at the right time, so it sticks.</p></div></div></div></section>
+
+<section id="pricing"><div class="w"><h2 class="rev">Simple pricing. Start free.</h2><p class="sub rev">Every account begins with 5 days of Pro. Pay monthly, no auto-renewal.</p>
+<div class="pg">
+<div class="card plan hi rev"><span class="tag">Most students</span><h3>Surg Pro</h3><div class="price">$1.10 <small>/ month</small></div><ul><li>900,000 tokens a month</li><li>All seven modes, text chat</li><li>Flashcards with spaced repetition</li><li>Study Mode and notes</li><li>Challenge and study planner</li><li>Uploads and weak-area tracking</li></ul><a class="btn" data-app href="/index.html">Start free trial</a></div>
+<div class="card plan rev" style="--d:.15s"><h3>Surg Ultra</h3><div class="price">$6 <small>/ month</small></div><ul><li>Everything in Pro</li><li>Voice conversation</li><li>Larger library</li><li>1,800,000 tokens a month</li></ul><a class="btn ghost" data-app href="/index.html">Start free trial</a></div></div>
+<p class="note">Prices are shown in dollars and paid in naira.</p></div></section>
+
+<section id="faq"><div class="w"><h2 class="rev">Questions students ask.</h2><div class="rev" style="margin-top:28px">
+<details><summary>Can Surg replace my textbooks and lectures?</summary><p>No. Surg is a study partner for understanding and recall. It is for education only and gives no personal diagnosis or treatment advice.</p></details>
+<details><summary>Is Surg always accurate?</summary><p>Surg is told never to invent statistics, doses, guidelines or references, but AI can still be wrong. Check important facts in your textbooks, and use thumbs-down to report a problem.</p></details>
+<details><summary>Where are my uploaded files kept?</summary><p>In your own browser, not on our server. When you ask a question, the relevant excerpts are sent with it to the AI provider so Surg can answer.</p></details>
+<details><summary>What happens to my questions and ratings?</summary><p>Questions pass through OpenRouter to the model provider. Thumbs ratings send a short snippet of the question and answer to the Surg team.</p></details>
+<details><summary>What happens when my trial ends?</summary><p>AI features pause until you pay. Study Mode, your notes and reviewing existing flashcards keep working.</p></details>
+<details><summary>How do I pay?</summary><p>Prices are in dollars and you pay in naira. Follow the payment instructions on the Plans page inside the app.</p></details></div></div></section>
+
+<section class="final"><div class="aur"><i></i><i></i><i></i></div><div class="w"><h2 class="rev">Your next distinction starts with one question.</h2><p class="sub rev">Try Surg free for 5 days. No card needed.</p><a class="btn" data-app href="/index.html">Start free trial</a></div></section>
+</main>
+<footer><div class="w"><p><b style="color:#fff;font-family:var(--ser)">SURG AI</b> is part of a wider effort to improve healthcare in Africa and to make medical students more creative and innovative.</p><p>Educational use only. Surg does not provide personal diagnosis or treatment. In an emergency, contact local emergency services.</p></div></footer>
+<script>
+(function(){
+var APP_URL="/index.html",$=function(s,c){return Array.prototype.slice.call((c||document).querySelectorAll(s))};
+$("[data-app]").forEach(function(a){a.href=APP_URL});
+var modes=["Tutor","Viva","OSCE","Examiner","Case discussion","Study coach","Research","Flashcards","Study Mode","Weak-spot review"],h="";
+for(var k=0;k<2;k++)modes.forEach(function(m){h+="<span>"+m+"</span>"});document.getElementById("mq").innerHTML=h;
+// word rotator
+var ws=["distinctions","vivas","OSCEs","clarity"],wi=0,ci=ws[0].length,del=true,el=document.getElementById("rot");
+(function t(){var w=ws[wi];if(del){ci--;if(ci<=0){del=false;wi=(wi+1)%ws.length}}else{ci++;if(ci>=ws[wi].length)del=true}
+el.textContent=ws[wi].slice(0,Math.max(ci,0));var full=!del&&ci>=ws[wi].length||del&&ci===ws[wi].length-1&&false;
+setTimeout(t,(ci>=ws[wi].length&&!del)||(del&&ci===ws[wi].length-1)?1400:70)})();
+// chat
+var ms=$("#chat .m"),i=0,chat=document.getElementById("chat");
+function next(){if(i>=ms.length)return setTimeout(function(){ms.forEach(function(m){m.classList.remove("on")});i=0;setTimeout(next,900)},4500);
+var m=ms[i++],s=m.classList.contains("s"),d;if(s){d=document.createElement("p");d.className="dots";d.innerHTML="<b></b><b></b><b></b>";m.parentNode.insertBefore(d,m);
+setTimeout(function(){d.remove();m.classList.add("on");next()},1100)}else{m.classList.add("on");setTimeout(next,1200)}}
+setTimeout(next,600);
+// reveal + counters
+function count(e){var n=+e.dataset.n,d=+e.dataset.d||0,t0=performance.now();(function f(t){var p=Math.min((t-t0)/1400,1),v=n*(1-Math.pow(1-p,3));
+e.textContent=(e.dataset.p||"")+v.toFixed(d)+(e.dataset.s||"");if(p<1)requestAnimationFrame(f)})(t0)}
+var io=new IntersectionObserver(function(es){es.forEach(function(x){if(!x.isIntersecting)return;x.target.classList.add("in");
+$("[data-n]",x.target).forEach(count);io.unobserve(x.target)})},{threshold:.18});
+$(".rev,.card").forEach(function(e){io.observe(e)});
+// spotlight
+$(".card").forEach(function(c){c.addEventListener("pointermove",function(e){var r=c.getBoundingClientRect();c.style.setProperty("--mx",e.clientX-r.left+"px");c.style.setProperty("--my",e.clientY-r.top+"px")})});
+})();
+</script>
+</body></html>
